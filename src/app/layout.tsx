@@ -17,6 +17,24 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: 'App Template',
   description: 'Cross-platform starter template',
+  applicationName: 'App Template',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'App Template',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
@@ -25,6 +43,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
 };
 
 export default function RootLayout({
