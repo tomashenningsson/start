@@ -9,6 +9,36 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      kid_progress: {
+        Row: {
+          user_id: string;
+          learned_letters: string[];
+          learned_numbers: number[];
+          completed_words: string[];
+          math_high_score: number;
+          total_stars: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          learned_letters?: string[];
+          learned_numbers?: number[];
+          completed_words?: string[];
+          math_high_score?: number;
+          total_stars?: number;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          learned_letters?: string[];
+          learned_numbers?: number[];
+          completed_words?: string[];
+          math_high_score?: number;
+          total_stars?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_profiles: {
         Row: {
           id: string;
