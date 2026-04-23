@@ -1,64 +1,39 @@
 import type { Metadata, Viewport } from 'next';
-import localFont from 'next/font/local';
+import { Nunito } from 'next/font/google';
 import './globals.css';
 import { ClientLayout } from './client-layout';
 
-const geistSans = localFont({
-  src: './fonts/GeistVF.woff',
-  variable: '--font-geist-sans',
-  weight: '100 900',
-});
-const geistMono = localFont({
-  src: './fonts/GeistMonoVF.woff',
-  variable: '--font-geist-mono',
-  weight: '100 900',
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800', '900'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'App Template',
-  description: 'Cross-platform starter template',
-  applicationName: 'App Template',
+  title: 'Lär dig! 🌟',
+  description: 'Lär dig bokstäver, siffror och matte på ett roligt sätt!',
+  applicationName: 'Lär dig!',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    title: 'App Template',
+    title: 'Lär dig!',
     statusBarStyle: 'black-translucent',
   },
-  formatDetection: {
-    telephone: false,
-  },
-  icons: {
-    icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
-  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
-  ],
+  themeColor: '#FFF9F0',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="sv" suppressHydrationWarning>
+      <body className={`${nunito.className} antialiased`}>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

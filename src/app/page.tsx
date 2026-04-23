@@ -1,135 +1,103 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { MainLayout, AuthDialog } from '@/components';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, Shield, Smartphone } from 'lucide-react';
+import Link from 'next/link';
+import { useProgress } from '@/hooks/useProgress';
 
-export default function HomePage() {
-  const { user } = useAuth();
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+const activities = [
+  {
+    href: '/bokstaver',
+    emoji: '🔤',
+    title: 'Bokstäver',
+    subtitle: 'A · B · C',
+    from: 'from-pink-400',
+    to: 'to-rose-400',
+    bg: 'bg-pink-50',
+    ring: 'ring-pink-200',
+  },
+  {
+    href: '/siffror',
+    emoji: '🔢',
+    title: 'Siffror',
+    subtitle: '1 · 2 · 3',
+    from: 'from-sky-400',
+    to: 'to-cyan-400',
+    bg: 'bg-sky-50',
+    ring: 'ring-sky-200',
+  },
+  {
+    href: '/ord',
+    emoji: '📖',
+    title: 'Ord',
+    subtitle: 'Stava ord',
+    from: 'from-green-400',
+    to: 'to-emerald-400',
+    bg: 'bg-green-50',
+    ring: 'ring-green-200',
+  },
+  {
+    href: '/matte',
+    emoji: '➕',
+    title: 'Matte',
+    subtitle: '1 + 2 = ?',
+    from: 'from-violet-400',
+    to: 'to-purple-400',
+    bg: 'bg-violet-50',
+    ring: 'ring-violet-200',
+  },
+];
+
+export default function Home() {
+  const { progress } = useProgress();
 
   return (
-    <MainLayout>
-      {user ? (
-        // Authenticated home
-        <div className="p-6 max-w-2xl mx-auto">
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Welcome back
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Here&apos;s what&apos;s happening with your account.
-              </p>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="p-4 rounded-2xl border border-border bg-card">
-                <h3 className="font-medium">Quick actions</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Get started with these common tasks
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" className="rounded-full" asChild>
-                    <a href="/profile">Edit profile</a>
-                  </Button>
-                  <Button variant="secondary" size="sm" className="rounded-full" asChild>
-                    <a href="/people">Find people</a>
-                  </Button>
-                  <Button variant="secondary" size="sm" className="rounded-full" asChild>
-                    <a href="/chat">Messages</a>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+    <main className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex flex-col items-center px-4 py-8 safe-top">
+      {/* Hero */}
+      <div className="text-center mb-10">
+        <div className="text-7xl mb-3 select-none">🌟</div>
+        <h1 className="text-5xl md:text-6xl font-black text-gray-800 mb-4 tracking-tight">
+          Lär dig!
+        </h1>
+        <div className="inline-flex items-center gap-2 bg-white/80 rounded-full px-5 py-2.5 shadow-md ring-1 ring-amber-200">
+          <span className="text-2xl">⭐</span>
+          <span className="text-xl font-black text-amber-600">{progress.totalStars}</span>
+          <span className="text-base font-bold text-gray-500">stjärnor</span>
         </div>
-      ) : (
-        // Landing page for unauthenticated users
-        <div className="flex flex-col">
-          {/* Hero */}
-          <section className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] px-6 text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight max-w-3xl">
-              Build apps that work everywhere
-            </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground mt-6 max-w-xl">
-              A minimal starter template for creating cross-platform applications
-              with React, Next.js, and Capacitor.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 mt-10">
-              <Button
-                onClick={() => setAuthDialogOpen(true)}
-                className="h-12 px-8 rounded-full text-base"
-              >
-                Get started
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="h-12 px-8 rounded-full text-base"
-                asChild
-              >
-                <a
-                  href="https://github.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View on GitHub
-                </a>
-              </Button>
-            </div>
-          </section>
+      </div>
 
-          {/* Features */}
-          <section className="px-6 py-24 border-t border-border">
-            <div className="max-w-5xl mx-auto">
-              <h2 className="text-3xl font-semibold tracking-tight text-center">
-                Everything you need
-              </h2>
-              <p className="text-muted-foreground text-center mt-4 max-w-xl mx-auto">
-                Built with modern tools and best practices, so you can focus on
-                building your product.
-              </p>
+      {/* Activity cards */}
+      <div className="grid grid-cols-2 gap-4 w-full max-w-md md:max-w-2xl">
+        {activities.map(a => (
+          <Link
+            key={a.href}
+            href={a.href}
+            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl ${a.bg} ring-2 ${a.ring} shadow-md hover:shadow-xl active:scale-95 transition-all duration-200 min-h-[160px] md:min-h-[200px] overflow-hidden`}
+          >
+            <div
+              className={`absolute inset-0 bg-gradient-to-br ${a.from} ${a.to} opacity-10 group-hover:opacity-20 transition-opacity`}
+            />
+            <div className="text-5xl md:text-6xl mb-3 select-none">{a.emoji}</div>
+            <div className="text-2xl md:text-3xl font-black text-gray-800">{a.title}</div>
+            <div className="text-sm md:text-base font-semibold text-gray-400 mt-1">{a.subtitle}</div>
+          </Link>
+        ))}
+      </div>
 
-              <div className="grid md:grid-cols-3 gap-8 mt-16">
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-secondary mb-4">
-                    <Zap className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold">Fast by default</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Built on Next.js with optimized performance out of the box.
-                  </p>
-                </div>
+      {/* Progress stats */}
+      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-md md:max-w-2xl">
+        <Stat label="Bokstäver" value={`${progress.learnedLetters.length}/29`} color="text-rose-500" />
+        <Stat label="Siffror" value={`${progress.learnedNumbers.length}/21`} color="text-sky-500" />
+        <Stat label="Ord klara" value={String(progress.completedWords.length)} color="text-green-500" />
+        <Stat label="Matte rekord" value={String(progress.mathHighScore)} color="text-violet-500" />
+      </div>
+    </main>
+  );
+}
 
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-secondary mb-4">
-                    <Shield className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold">Secure authentication</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Supabase Auth with row-level security built in.
-                  </p>
-                </div>
-
-                <div className="text-center">
-                  <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-secondary mb-4">
-                    <Smartphone className="h-6 w-6" />
-                  </div>
-                  <h3 className="font-semibold">Cross-platform</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Deploy to web, iOS, and Android from one codebase.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
-
-      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
-    </MainLayout>
+function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="bg-white/80 rounded-2xl p-3 text-center shadow-sm ring-1 ring-gray-100">
+      <div className={`text-2xl font-black ${color}`}>{value}</div>
+      <div className="text-xs font-bold text-gray-400 mt-0.5">{label}</div>
+    </div>
   );
 }
