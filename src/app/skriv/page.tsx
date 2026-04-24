@@ -13,6 +13,7 @@ const STROKE_WIDTH = 24;
 const GRID = 24; // 24×24 coverage grid (~13px cells, fine enough to require crossbars etc)
 const CELL = CANVAS_SIZE / GRID; // ~13.3px per cell
 const SUCCESS_PCT = 80;
+const N_BANDS = 3; // divide letter into top/middle/bottom; all bands must be traced
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
@@ -139,9 +140,28 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
         if (valid.has(key)) covered.add(key);
       }
     }
-    onProgressRef.current(
-      Math.min(100, Math.round((covered.size / Math.max(valid.size, 1)) * 100))
-    );
+    // Report the minimum per-band coverage so every part of the letter must be traced.
+    // A progress of e.g. 40% means the worst-covered band (e.g. A's crossbar) is at 40%.
+    const bandSize = Math.ceil(GRID / N_BANDS);
+    let minCoverage = 100;
+    let hasValidBand = false;
+    for (let b = 0; b < N_BANDS; b++) {
+      let bandValid = 0, bandCovered = 0;
+      for (let gy = b * bandSize; gy < Math.min((b + 1) * bandSize, GRID); gy++) {
+        for (let gx = 0; gx < GRID; gx++) {
+          const key = `${gx},${gy}`;
+          if (valid.has(key)) {
+            bandValid++;
+            if (covered.has(key)) bandCovered++;
+          }
+        }
+      }
+      if (bandValid > 2) {
+        hasValidBand = true;
+        minCoverage = Math.min(minCoverage, Math.round(bandCovered / bandValid * 100));
+      }
+    }
+    onProgressRef.current(hasValidBand ? Math.min(100, minCoverage) : 100);
   }
 
   // ── Touch events: native non-passive listeners so preventDefault() stops page scroll ──
