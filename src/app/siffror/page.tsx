@@ -147,7 +147,7 @@ export default function SiffrorPage() {
               <button
                 key={num}
                 onClick={() => handleAnswer(num)}
-                className={`py-5 rounded-3xl font-black shadow-md transition-all active:scale-95 ${
+                className={`py-3.5 rounded-3xl font-black shadow-md transition-all active:scale-95 ${
                   isCorrect
                     ? 'bg-green-400 text-white scale-105 shadow-lg shadow-green-200'
                     : isWrong
@@ -155,8 +155,8 @@ export default function SiffrorPage() {
                     : 'bg-white text-gray-700 ring-2 ring-sky-200 hover:ring-sky-400 hover:shadow-lg'
                 }`}
               >
-                <div className="text-4xl">{num}</div>
-                <div className="text-sm font-bold opacity-50 mt-1">{numData?.word}</div>
+                <div className="text-3xl">{num}</div>
+                <div className="text-xs font-bold opacity-50 mt-0.5">{numData?.word}</div>
               </button>
             );
           })}
