@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { wordList } from '@/data/words';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
@@ -21,7 +21,6 @@ function shuffle<T>(arr: T[]): T[] {
 
 function buildAvailable(word: string, level: 1 | 2 | 3) {
   if (level === 3) {
-    // Full alphabet — never mark as placed
     return FULL_ALPHABET.map((char, id) => ({ char, id, placed: false, isAlpha: true }));
   }
   const extraCount = level === 1 ? 0 : 2;
@@ -42,8 +41,21 @@ export default function OrdPage() {
   const [shaking, setShaking] = useState(false);
   const [wrongMsg, setWrongMsg] = useState(false);
 
+  // Drag state — position only needs to be in React state for rendering the ghost
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragLetter, setDragLetter] = useState<AvailLetter | null>(null);
+  const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
+
   const { speak } = useSpeech();
   const { progress, completeWord } = useProgress();
+
+  // Refs for inside the stable pointer-event effect
+  const isDraggingRef = useRef(false);
+  const dragLetterRef = useRef<AvailLetter | null>(null);
+  const justPlacedRef = useRef(false);
+  const slotRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  // Keep a fresh reference to the placement handler so the effect never goes stale
+  const placeRef = useRef<(letter: AvailLetter, slotIdx: number) => void>(() => {});
 
   const levelWords = wordList.filter(w => w.level === level);
   const current = levelWords[wordIdx % levelWords.length];
@@ -61,18 +73,15 @@ export default function OrdPage() {
     initWord(current, level);
   }, [current, level, initWord]);
 
-  const handleAvailClick = (letter: AvailLetter) => {
-    // For full alphabet (level 3), letters are never disabled
-    if (!letter.isAlpha && letter.placed) return;
-    if (celebrating) return;
-    const nextEmpty = slots.findIndex(s => s === null);
-    if (nextEmpty === -1) return;
+  // Place a dragged letter into a specific slot
+  const placeLetterInSlot = (letter: AvailLetter, slotIdx: number) => {
+    if (celebrating || slots[slotIdx] !== null) return;
+    if (letter.placed && !letter.isAlpha) return;
 
     const newSlots = [...slots];
-    newSlots[nextEmpty] = `${letter.char}:${letter.id}`;
+    newSlots[slotIdx] = `${letter.char}:${letter.id}`;
     setSlots(newSlots);
 
-    // Only mark placed for non-alphabet letters
     if (!letter.isAlpha) {
       setAvail(prev => prev.map(l => l.id === letter.id ? { ...l, placed: true } : l));
     }
@@ -91,36 +100,85 @@ export default function OrdPage() {
           setShaking(false);
           setWrongMsg(false);
           setSlots(Array(current.word.length).fill(null));
-          // Reset placed state for non-alphabet letters only
           setAvail(prev => prev.map(l => l.isAlpha ? l : { ...l, placed: false }));
         }, 900);
       }
     }
   };
 
+  // Always point to the latest version of the placement function
+  placeRef.current = placeLetterInSlot;
+
+  // Find which slot index is under a given viewport coordinate
+  const slotAt = (x: number, y: number): number => {
+    return slotRefs.current.findIndex(ref => {
+      if (!ref) return false;
+      const r = ref.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    });
+  };
+
+  // Mount global pointer handlers once — all mutable access goes through refs
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      e.preventDefault();
+      setDragPos({ x: e.clientX, y: e.clientY });
+      const idx = slotAt(e.clientX, e.clientY);
+      setHoveredSlot(idx >= 0 ? idx : null);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      const idx = slotAt(e.clientX, e.clientY);
+      if (idx >= 0 && dragLetterRef.current) {
+        justPlacedRef.current = true;
+        setTimeout(() => { justPlacedRef.current = false; }, 80);
+        placeRef.current(dragLetterRef.current, idx);
+      }
+      dragLetterRef.current = null;
+      setDragLetter(null);
+      setDragPos(null);
+      setHoveredSlot(null);
+    };
+
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, []); // stable — everything mutable accessed via refs
+
+  const handleLetterPointerDown = (e: React.PointerEvent, letter: AvailLetter) => {
+    if ((letter.placed && !letter.isAlpha) || celebrating) return;
+    e.preventDefault();
+    isDraggingRef.current = true;
+    dragLetterRef.current = letter;
+    setDragLetter(letter);
+    setDragPos({ x: e.clientX, y: e.clientY });
+  };
+
   const handleSlotClick = (idx: number) => {
+    if (justPlacedRef.current) return; // ignore click fired right after a drop
     const content = slots[idx];
     if (!content || celebrating) return;
     const letterId = parseInt(content.split(':')[1]);
     const newSlots = [...slots];
     newSlots[idx] = null;
     setSlots(newSlots);
-    // Only un-place if it's not an alphabet letter
     setAvail(prev => prev.map(l => {
       if (l.id !== letterId) return l;
       return l.isAlpha ? l : { ...l, placed: false };
     }));
   };
 
-  const nextWord = () => {
-    setWordIdx(i => i + 1);
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 pb-12 select-none">
       <PageHeader
-        title="Ord"
-        emoji="📖"
+        title="Ordpusslet"
+        emoji="🧩"
         rightContent={
           <span className="text-sm font-black text-gray-500 bg-white/80 rounded-full px-3 py-1 ring-1 ring-gray-200">
             ⭐ {progress.completedWords.length} ord
@@ -147,7 +205,7 @@ export default function OrdPage() {
 
       {/* Word hint */}
       <div className="flex flex-col items-center mt-7 mb-5 px-4 text-center">
-        <div className="text-8xl md:text-9xl mb-4 select-none">{current.emoji}</div>
+        <div className="text-8xl md:text-9xl mb-4">{current.emoji}</div>
         <p className="text-lg font-bold text-gray-400">Vad heter detta?</p>
         <button
           onClick={() => speak(current.hint)}
@@ -157,31 +215,37 @@ export default function OrdPage() {
         </button>
       </div>
 
-      {/* Letter slots */}
-      <div className={`flex justify-center gap-2 px-4 mb-8 ${shaking ? 'animate-shake' : ''}`}>
+      {/* Letter slots — drop targets */}
+      <div className={`flex justify-center gap-2 px-4 mb-3 ${shaking ? 'animate-shake' : ''}`}>
         {slots.map((slot, i) => {
           const letter = slot ? slot.split(':')[0] : null;
+          const isHovered = hoveredSlot === i && letter === null && dragPos !== null;
           return (
             <button
               key={i}
+              ref={el => { slotRefs.current[i] = el; }}
               onClick={() => handleSlotClick(i)}
-              className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all ${
+              className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all duration-150 ${
                 letter
                   ? shaking
                     ? 'bg-red-100 border-red-400 text-red-600'
-                    : 'bg-green-100 border-green-400 text-green-700 hover:bg-green-200 active:scale-90'
+                    : 'bg-green-100 border-green-400 text-green-700 active:scale-90'
+                  : isHovered
+                  ? 'bg-amber-50 border-amber-400 scale-110 shadow-lg border-solid'
                   : 'bg-white/60 border-dashed border-gray-300'
               }`}
             >
               {letter ?? (
-                <span className="text-gray-300 opacity-50 select-none">
-                  {current.word[i]}
-                </span>
+                <span className="text-gray-200 text-lg">{current.word[i]}</span>
               )}
             </button>
           );
         })}
       </div>
+
+      <p className="text-center text-xs font-bold text-gray-400 mb-5 px-4">
+        Dra bokstäverna till rätt ruta · Tryck på en ruta för att ta tillbaka bokstaven
+      </p>
 
       {wrongMsg && (
         <p className="text-center text-red-500 font-black text-lg mb-4 animate-bounce">
@@ -189,19 +253,23 @@ export default function OrdPage() {
         </p>
       )}
 
-      {/* Available letters */}
+      {/* Available letters — drag source */}
       <div className={`flex flex-wrap justify-center gap-3 px-6 mx-auto ${level === 3 ? 'max-w-lg' : 'max-w-sm md:max-w-md'}`}>
         {avail.map(letter => {
           const isPlaced = !letter.isAlpha && letter.placed;
+          const isBeingDragged = dragLetter?.id === letter.id && !letter.isAlpha;
           return (
             <button
               key={letter.id}
-              onClick={() => handleAvailClick(letter)}
+              onPointerDown={e => handleLetterPointerDown(e, letter)}
               disabled={isPlaced}
+              style={{ touchAction: 'none' }}
               className={`w-[52px] h-[52px] md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-md transition-all ${
                 isPlaced
                   ? 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-30 scale-90'
-                  : 'bg-gradient-to-br from-amber-300 to-orange-400 text-white hover:shadow-lg active:scale-90'
+                  : isBeingDragged
+                  ? 'bg-gradient-to-br from-amber-200 to-orange-300 text-white opacity-40 scale-90'
+                  : 'bg-gradient-to-br from-amber-300 to-orange-400 text-white hover:shadow-lg cursor-grab active:cursor-grabbing'
               }`}
             >
               {letter.char}
@@ -210,11 +278,10 @@ export default function OrdPage() {
         })}
       </div>
 
-      {/* Next word button */}
       {celebrating && (
         <div className="flex justify-center mt-10">
           <button
-            onClick={nextWord}
+            onClick={() => setWordIdx(i => i + 1)}
             className="px-10 py-4 rounded-3xl bg-green-500 text-white font-black text-xl shadow-lg hover:bg-green-600 active:scale-95 transition-all"
           >
             Nästa ord ➡️
@@ -223,6 +290,20 @@ export default function OrdPage() {
       )}
 
       <Celebration active={celebrating} onComplete={() => {}} />
+
+      {/* Dragging ghost — floats above everything, centered slightly above finger */}
+      {dragPos && dragLetter && (
+        <div
+          className="fixed pointer-events-none z-50 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-2xl"
+          style={{
+            left: dragPos.x - 28,
+            top: dragPos.y - 56,
+            transform: 'scale(1.2)',
+          }}
+        >
+          {dragLetter.char}
+        </div>
+      )}
     </div>
   );
 }

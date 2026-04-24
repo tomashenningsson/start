@@ -30,9 +30,9 @@ const activities = [
   },
   {
     href: '/ord',
-    emoji: '📖',
-    title: 'Ord',
-    subtitle: 'Stava ord',
+    emoji: '🧩',
+    title: 'Ordpusslet',
+    subtitle: 'Dra & Stava!',
     from: 'from-green-400',
     to: 'to-emerald-400',
     bg: 'bg-green-50',
