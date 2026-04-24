@@ -95,55 +95,37 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
   const coveredCellsRef = useRef<Set<string>>(new Set());
   const isDrawingRef = useRef(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  // Ref so touch effect always calls the latest onProgress without re-attaching listeners
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
 
+  // Initialise canvases when character changes
   useEffect(() => {
     const refCanvas = refCanvasRef.current;
     const drawCanvas = drawCanvasRef.current;
     if (!refCanvas || !drawCanvas) return;
-
     drawReference(refCanvas.getContext('2d')!, char);
     drawCanvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    const valid = buildValidCells(char);
-    validCellsRef.current = valid;
+    validCellsRef.current = buildValidCells(char);
     coveredCellsRef.current = new Set();
-    onProgress(0);
-  }, [char, onProgress]);
+    onProgressRef.current(0);
+  }, [char]);
 
-  const getPos = useCallback((e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
-    const rect = canvas.getBoundingClientRect();
-    const sx = CANVAS_SIZE / rect.width;
-    const sy = CANVAS_SIZE / rect.height;
-    if ('touches' in e) {
-      const t = e.touches[0] ?? e.changedTouches[0];
-      return { x: (t.clientX - rect.left) * sx, y: (t.clientY - rect.top) * sy };
-    }
-    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
-  }, []);
+  // Helpers — only use refs and constants so they're safe inside effects
+  function canvasPos(clientX: number, clientY: number, canvas: HTMLCanvasElement) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - r.left) * (CANVAS_SIZE / r.width),
+      y: (clientY - r.top) * (CANVAS_SIZE / r.height),
+    };
+  }
 
-  const markCoverage = useCallback((x: number, y: number) => {
-    const valid = validCellsRef.current;
-    const covered = coveredCellsRef.current;
-    // Mark all cells within stroke radius as covered (if valid)
-    const radiusCells = Math.ceil(STROKE_WIDTH / 2 / CELL) + 1;
-    const cgx = Math.floor(x / CELL);
-    const cgy = Math.floor(y / CELL);
-    for (let dy = -radiusCells; dy <= radiusCells; dy++) {
-      for (let dx = -radiusCells; dx <= radiusCells; dx++) {
-        const key = `${cgx + dx},${cgy + dy}`;
-        if (valid.has(key)) covered.add(key);
-      }
-    }
-    const pct = Math.min(100, Math.round((covered.size / Math.max(valid.size, 1)) * 100));
-    onProgress(pct);
-  }, [onProgress]);
-
-  const stroke = useCallback((
+  function paintLine(
     ctx: CanvasRenderingContext2D,
     from: { x: number; y: number },
     to: { x: number; y: number },
     inside: boolean,
-  ) => {
+  ) {
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
     ctx.lineTo(to.x, to.y);
@@ -152,56 +134,110 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
-  }, []);
+  }
 
-  const startDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+  function updateCoverage(x: number, y: number) {
+    const valid = validCellsRef.current;
+    const covered = coveredCellsRef.current;
+    const r = Math.ceil(STROKE_WIDTH / 2 / CELL) + 1;
+    const cgx = Math.floor(x / CELL);
+    const cgy = Math.floor(y / CELL);
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        const key = `${cgx + dx},${cgy + dy}`;
+        if (valid.has(key)) covered.add(key);
+      }
+    }
+    onProgressRef.current(
+      Math.min(100, Math.round((covered.size / Math.max(valid.size, 1)) * 100))
+    );
+  }
+
+  // ── Touch events: native non-passive listeners so preventDefault() stops page scroll ──
+  useEffect(() => {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+
+    const onStart = (e: TouchEvent) => {
+      e.preventDefault();
+      if (!e.touches.length) return;
+      isDrawingRef.current = true;
+      const t = e.touches[0];
+      lastPosRef.current = canvasPos(t.clientX, t.clientY, canvas);
+    };
+
+    const onMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (!isDrawingRef.current || !e.touches.length) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const t = e.touches[0];
+      const pos = canvasPos(t.clientX, t.clientY, canvas);
+      const last = lastPosRef.current ?? pos;
+      paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
+      updateCoverage(pos.x, pos.y);
+      lastPosRef.current = pos;
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      isDrawingRef.current = false;
+      lastPosRef.current = null;
+    };
+
+    const opts: AddEventListenerOptions = { passive: false };
+    canvas.addEventListener('touchstart', onStart, opts);
+    canvas.addEventListener('touchmove', onMove, opts);
+    canvas.addEventListener('touchend', onEnd, opts);
+    canvas.addEventListener('touchcancel', onEnd, opts);
+    return () => {
+      canvas.removeEventListener('touchstart', onStart, opts);
+      canvas.removeEventListener('touchmove', onMove, opts);
+      canvas.removeEventListener('touchend', onEnd, opts);
+      canvas.removeEventListener('touchcancel', onEnd, opts);
+    };
+  }, []); // empty — all access via stable refs
+
+  // ── Mouse events: React synthetic handlers are fine for mouse ──
+  const onMouseDown = (e: React.MouseEvent) => {
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
     isDrawingRef.current = true;
-    lastPosRef.current = getPos(e, canvas);
-  }, [getPos]);
-
-  const continueDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+    lastPosRef.current = canvasPos(e.clientX, e.clientY, canvas);
+  };
+  const onMouseMove = (e: React.MouseEvent) => {
     if (!isDrawingRef.current) return;
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    const pos = getPos(e, canvas);
+    const pos = canvasPos(e.clientX, e.clientY, canvas);
     const last = lastPosRef.current ?? pos;
-    const inside = isInsideValid(validCellsRef.current, pos.x, pos.y);
-    stroke(ctx, last, pos, inside);
-    markCoverage(pos.x, pos.y);
+    paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
+    updateCoverage(pos.x, pos.y);
     lastPosRef.current = pos;
-  }, [getPos, stroke, markCoverage]);
+  };
+  const onMouseUp = () => { isDrawingRef.current = false; lastPosRef.current = null; };
 
-  const endDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    isDrawingRef.current = false;
-    lastPosRef.current = null;
-  }, []);
-
-  const clear = useCallback(() => {
+  const clear = () => {
     drawCanvasRef.current?.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     coveredCellsRef.current = new Set();
-    onProgress(0);
-  }, [onProgress]);
+    onProgressRef.current(0);
+  };
 
   return (
     <div className="flex flex-col items-center gap-3">
+      {/* touch-action:none on wrapper + canvas prevents iOS rubber-band / momentum scroll */}
       <div
-        className="relative rounded-3xl overflow-hidden shadow-xl ring-2 ring-violet-200 touch-none"
-        style={{ width: '100%', maxWidth: CANVAS_SIZE, aspectRatio: '1' }}
+        className="relative rounded-3xl overflow-hidden shadow-xl ring-2 ring-violet-200"
+        style={{ width: '100%', maxWidth: CANVAS_SIZE, aspectRatio: '1', touchAction: 'none' }}
       >
         <canvas ref={refCanvasRef} width={CANVAS_SIZE} height={CANVAS_SIZE}
           className="absolute inset-0 w-full h-full" />
         <canvas ref={drawCanvasRef} width={CANVAS_SIZE} height={CANVAS_SIZE}
           className="absolute inset-0 w-full h-full cursor-crosshair"
-          onMouseDown={startDraw} onMouseMove={continueDraw}
-          onMouseUp={endDraw} onMouseLeave={endDraw}
-          onTouchStart={startDraw} onTouchMove={continueDraw}
-          onTouchEnd={endDraw} onTouchCancel={endDraw}
+          style={{ touchAction: 'none' }}
+          onMouseDown={onMouseDown} onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
         />
       </div>
       <button onClick={clear}
