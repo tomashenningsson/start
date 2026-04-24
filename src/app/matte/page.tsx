@@ -56,11 +56,20 @@ type GameState = 'idle' | 'playing' | 'gameover';
 type Flash = 'correct' | 'wrong' | null;
 interface DotsAnim { a: number; b: number; op: '+' | '-'; result: number; }
 
-function LavaMonster({ chomping }: { chomping: boolean }) {
+function LavaMonster({ chompDx }: { chompDx: number | null }) {
+  const chomping = chompDx !== null;
+  const style: React.CSSProperties = chomping
+    ? {
+        ['--chomp-dx' as string]: `${chompDx}px`,
+        ['--chomp-dx-70' as string]: `${chompDx * 0.7}px`,
+        ['--chomp-dx-30' as string]: `${chompDx * 0.3}px`,
+      }
+    : {};
   return (
     <svg
       viewBox="0 0 64 64"
-      className={`w-14 h-14 drop-shadow-lg select-none ${chomping ? 'animate-chomp' : ''}`}
+      style={style}
+      className={`w-14 h-14 drop-shadow-lg select-none ${chomping ? 'animate-chomp-to' : ''}`}
     >
       <polygon points="16,22 11,4 22,19" fill="#b91c1c" />
       <polygon points="48,22 53,4 42,19" fill="#b91c1c" />
@@ -83,7 +92,7 @@ function LavaMonster({ chomping }: { chomping: boolean }) {
   );
 }
 
-function LavaZone({ chomping }: { chomping: boolean }) {
+function LavaZone({ chompDx }: { chompDx: number | null }) {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-[72px] pointer-events-none">
       <div
@@ -91,7 +100,7 @@ function LavaZone({ chomping }: { chomping: boolean }) {
         style={{ animation: 'lava-wave 2.4s ease-in-out infinite' }}
       />
       <div className="absolute bottom-1 right-2">
-        <LavaMonster chomping={chomping} />
+        <LavaMonster chompDx={chompDx} />
       </div>
     </div>
   );
@@ -100,7 +109,7 @@ function LavaZone({ chomping }: { chomping: boolean }) {
 interface FallingEquationProps {
   equation: Equation;
   burning: boolean;
-  onMissed: (id: number) => void;
+  onMissed: (id: number, cardCenterX: number) => void;
   penaltyRef: React.MutableRefObject<(() => void) | null>;
 }
 
@@ -134,7 +143,16 @@ function FallingEquation({ equation, burning, onMissed, penaltyRef }: FallingEqu
 
   const handleAnimEnd = (e: React.AnimationEvent) => {
     if (e.animationName === 'equation-fall' || e.animationName === 'equation-fall-from') {
-      onMissed(equation.id);
+      // Measure card center so monster can jump exactly to it
+      const el = divRef.current;
+      const parent = el?.parentElement;
+      let centerX = -1;
+      if (el && parent) {
+        const elRect = el.getBoundingClientRect();
+        const parentRect = parent.getBoundingClientRect();
+        centerX = elRect.left - parentRect.left + elRect.width / 2;
+      }
+      onMissed(equation.id, centerX);
     }
   };
 
@@ -247,13 +265,14 @@ export default function MattePage() {
   const [flash, setFlash] = useState<Flash>(null);
   const [dots, setDots] = useState<DotsAnim | null>(null);
   const [dotsPhase, setDotsPhase] = useState<'split' | 'merged'>('split');
-  const [chomping, setChomping] = useState(false);
+  const [chompDx, setChompDx] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
 
   const scoreRef = useRef(0);
   const eqIdRef = useRef(0);
   const livesRef = useRef(3);
   const equationPenaltyRef = useRef<(() => void) | null>(null);
+  const gameAreaRef = useRef<HTMLDivElement>(null);
   scoreRef.current = score;
   livesRef.current = lives;
 
@@ -270,10 +289,15 @@ export default function MattePage() {
     setTimeout(() => setFlash(null), 500);
   }, []);
 
-  const handleMissed = useCallback((id: number) => {
-    // Guard: only process if the equation with this id is still active
+  const handleMissed = useCallback((id: number, cardCenterX: number) => {
+    // Compute horizontal offset so monster slides to where the equation landed
+    const gameArea = gameAreaRef.current;
+    if (gameArea) {
+      // Monster center from left: right-2 (8px gap) + w-14/2 (28px) from right edge
+      const monsterCenterX = gameArea.offsetWidth - 36;
+      setChompDx(cardCenterX >= 0 ? cardCenterX - monsterCenterX : -60);
+    }
     setBurningId(id);
-    setChomping(true);
     showFlash('wrong');
     const nl = livesRef.current - 1;
     livesRef.current = nl;
@@ -283,7 +307,7 @@ export default function MattePage() {
     } else {
       setTimeout(spawnNext, 900);
     }
-    setTimeout(() => setChomping(false), 750);
+    setTimeout(() => setChompDx(null), 880);
     // Clear the burning equation after burn animation completes
     setTimeout(() => { setBurningId(null); setEquation(null); }, 700);
   }, [spawnNext, showFlash]);
@@ -315,7 +339,7 @@ export default function MattePage() {
   const startGame = () => {
     scoreRef.current = 0; eqIdRef.current = 0; livesRef.current = 3;
     setScore(0); setLives(3); setEquation(null); setFlash(null);
-    setBurningId(null); setDots(null); setChomping(false); setGameState('playing');
+    setBurningId(null); setDots(null); setChompDx(null); setGameState('playing');
     setTimeout(() => { eqIdRef.current = 1; setEquation(makeEquation(0, 1)); }, 700);
   };
 
@@ -389,7 +413,7 @@ export default function MattePage() {
       </div>
 
       {/* Game area */}
-      <div className="flex-1 relative overflow-hidden min-h-0">
+      <div ref={gameAreaRef} className="flex-1 relative overflow-hidden min-h-0">
         {equation && (
           <FallingEquation
             key={equation.id}
@@ -399,7 +423,7 @@ export default function MattePage() {
             penaltyRef={equationPenaltyRef}
           />
         )}
-        <LavaZone chomping={chomping} />
+        <LavaZone chompDx={chompDx} />
       </div>
 
       {/* Answer buttons */}
