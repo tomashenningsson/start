@@ -50,9 +50,9 @@ const activities = [
   },
   {
     href: '/skriv',
-    emoji: '✏️',
-    title: 'Skriv',
-    subtitle: 'Rita bokstäver',
+    emoji: '🖊️',
+    title: 'Spårskolan',
+    subtitle: 'Spåra bokstäver!',
     from: 'from-orange-400',
     to: 'to-amber-400',
     bg: 'bg-orange-50',

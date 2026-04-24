@@ -12,7 +12,7 @@ const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
 const GRID = 14; // 14×14 coverage grid
 const CELL = CANVAS_SIZE / GRID; // ~22.9px per cell
-const SUCCESS_PCT = 95;
+const SUCCESS_PCT = 100;
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
@@ -22,16 +22,6 @@ function drawReference(ctx: CanvasRenderingContext2D, char: string) {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.fillStyle = '#f5f3ff';
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-  // Horizontal baseline guide
-  ctx.strokeStyle = '#ddd6fe';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath();
-  ctx.moveTo(16, CHAR_Y + FONT_SIZE * 0.18);
-  ctx.lineTo(CANVAS_SIZE - 16, CHAR_Y + FONT_SIZE * 0.18);
-  ctx.stroke();
-  ctx.setLineDash([]);
 
   ctx.font = `bold ${FONT_SIZE}px Arial, sans-serif`;
   ctx.textAlign = 'center';
@@ -275,7 +265,7 @@ export default function SkrivPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 pb-12 overscroll-none">
-      <PageHeader title="Skriv" emoji="✏️" />
+      <PageHeader title="Spårskolan" emoji="🖊️" />
 
       {/* Mode tabs */}
       <div className="flex gap-2 justify-center px-4 pt-5 mb-5">
