@@ -12,7 +12,7 @@ const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
 const GRID = 24; // 24×24 coverage grid (~13px cells, fine enough to require crossbars etc)
 const CELL = CANVAS_SIZE / GRID; // ~13.3px per cell
-const SUCCESS_PCT = 55;
+const SUCCESS_PCT = 60;
 const N_BANDS = 3; // divide letter into top/middle/bottom; all bands must be traced
 
 // Shared font/position so reference and mask exactly match
