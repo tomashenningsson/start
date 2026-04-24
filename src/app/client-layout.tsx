@@ -1,19 +1,16 @@
 'use client';
 
-import { type ReactNode } from 'react';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
+import type { ReactNode } from 'react';
+import { KidsAuthProvider } from '@/contexts/KidsAuthContext';
+import { ProgressProvider } from '@/contexts/ProgressContext';
+import { SoundProvider } from '@/contexts/SoundContext';
 
-interface ClientLayoutProps {
-  children: ReactNode;
-}
-
-export function ClientLayout({ children }: ClientLayoutProps) {
+export function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <ThemeProvider>{children}</ThemeProvider>
-      <ServiceWorkerRegister />
-    </AuthProvider>
+    <SoundProvider>
+      <KidsAuthProvider>
+        <ProgressProvider>{children}</ProgressProvider>
+      </KidsAuthProvider>
+    </SoundProvider>
   );
 }

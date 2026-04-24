@@ -2,60 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+    --background: 40 60% 97%;
+    --foreground: 220 15% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 220 15% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 0 0% 9%;
+    --popover-foreground: 220 15% 20%;
+    --primary: 220 15% 20%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 9%;
+    --secondary: 40 30% 94%;
+    --secondary-foreground: 220 15% 20%;
+    --muted: 40 20% 93%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 40 30% 92%;
+    --accent-foreground: 220 15% 20%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 92%;
-    --input: 0 0% 92%;
-    --ring: 0 0% 9%;
-    --radius: 0.75rem;
+    --border: 40 20% 88%;
+    --input: 40 20% 88%;
+    --ring: 220 15% 20%;
+    --radius: 1rem;
   }
 
-  .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 0 0% 83%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
@@ -66,53 +36,123 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Safe area padding for mobile devices */
-  .safe-top {
-    padding-top: env(safe-area-inset-top);
-  }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left { padding-left: env(safe-area-inset-left); }
+  .safe-right { padding-right: env(safe-area-inset-right); }
+}
 
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
 
-  .safe-left {
-    padding-left: env(safe-area-inset-left);
-  }
+/* Celebration pop animation */
+@keyframes successPop {
+  0%   { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+  65%  { transform: scale(1.25) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
 
-  .safe-right {
-    padding-right: env(safe-area-inset-right);
+/* Falling math equation — normal fall */
+@keyframes equation-fall {
+  from { top: -100px; }
+  to   { top: calc(100% - 132px); }
+}
+
+/* Post-penalty fall: resumes from a fixed top (set via --fall-from) */
+@keyframes equation-fall-from {
+  from { top: var(--fall-from, -100px); }
+  to   { top: calc(100% - 132px); }
+}
+
+/* Penalty fall: top is fixed inline, this animates translateY the remaining dist */
+@keyframes equation-fall-penalty {
+  from { transform: translateY(0); }
+  to   { transform: translateY(var(--penalty-dist, 200px)); }
+}
+
+/* Burning card when equation hits lava */
+@keyframes equation-burn {
+  0%   { transform: scale(1)    rotate(0deg);  opacity: 1; }
+  30%  { transform: scale(1.08) rotate(-3deg); opacity: 1; filter: brightness(1.4) saturate(3); }
+  65%  { transform: scale(0.85) rotate(4deg);  opacity: 0.7; filter: brightness(2) saturate(5) sepia(0.8); }
+  100% { transform: scale(0.4)  rotate(-6deg); opacity: 0; filter: brightness(3) saturate(8) sepia(1); }
+}
+
+.animate-burn {
+  animation: equation-burn 0.65s ease-in forwards;
+}
+
+/* Wrong answer shake */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-8px); }
+  40%       { transform: translateX(8px); }
+  60%       { transform: translateX(-6px); }
+  80%       { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.35s ease-in-out;
+}
+
+/* Letter/number card tap pop */
+@keyframes pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.animate-pop {
+  animation: pop 0.18s ease-out;
+}
+
+/* Lava wave animation */
+@keyframes lava-wave {
+  0%, 100% {
+    clip-path: polygon(
+      0 35%, 5% 18%, 10% 30%, 15% 10%, 20% 28%, 25% 8%, 30% 25%,
+      35% 10%, 40% 28%, 45% 12%, 50% 30%, 55% 10%, 60% 26%, 65% 8%,
+      70% 24%, 75% 12%, 80% 28%, 85% 8%, 90% 26%, 95% 14%, 100% 32%,
+      100% 100%, 0 100%
+    );
+  }
+  50% {
+    clip-path: polygon(
+      0 22%, 5% 8%, 10% 20%, 15% 0%, 20% 18%, 25% 5%, 30% 16%,
+      35% 2%, 40% 20%, 45% 6%, 50% 22%, 55% 2%, 60% 18%, 65% 4%,
+      70% 16%, 75% 2%, 80% 20%, 85% 4%, 90% 18%, 95% 2%, 100% 20%,
+      100% 100%, 0 100%
+    );
   }
 }
 
-@layer components {
-  /* Minimal button styles */
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
-  }
+/* Monster jumps up out of the lava to eat the equation */
+@keyframes chomp {
+  0%   { transform: translateY(0)    scale(1)   rotate(0deg); }
+  18%  { transform: translateY(-40px) scale(1.4) rotate(-12deg); }
+  38%  { transform: translateY(-68px) scale(1.7) rotate(8deg); }
+  58%  { transform: translateY(-38px) scale(1.3) rotate(-5deg); }
+  78%  { transform: translateY(-12px) scale(1.1) rotate(0deg); }
+  100% { transform: translateY(0)    scale(1)   rotate(0deg); }
+}
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-full border border-border bg-transparent px-6 py-3 text-sm font-medium transition-all hover:bg-secondary active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
-  }
+.animate-chomp {
+  animation: chomp 0.7s ease-in-out;
+}
 
-  .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-all hover:bg-secondary active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
-  }
+/* Monster slides to equation X position and jumps up to eat it */
+@keyframes chomp-to {
+  0%   { transform: translateX(0)                  translateY(0)    scale(1)   rotate(0deg); }
+  22%  { transform: translateX(var(--chomp-dx-70)) translateY(-22px) scale(1.3) rotate(-10deg); }
+  42%  { transform: translateX(var(--chomp-dx))    translateY(-65px) scale(1.8) rotate(7deg); }
+  60%  { transform: translateX(var(--chomp-dx))    translateY(-22px) scale(1.3) rotate(-4deg); }
+  80%  { transform: translateX(var(--chomp-dx-30)) translateY(-8px)  scale(1.1) rotate(0deg); }
+  100% { transform: translateX(0)                  translateY(0)    scale(1)   rotate(0deg); }
+}
 
-  /* Input styles */
-  .input-field {
-    @apply w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-foreground focus:ring-1 focus:ring-foreground;
-  }
-
-  /* Glass effect */
-  .glass {
-    @apply bg-background/80 backdrop-blur-xl;
-  }
-
-  /* Subtle shadow */
-  .shadow-subtle {
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 6px -1px rgb(0 0 0 / 0.02);
-  }
+.animate-chomp-to {
+  animation: chomp-to 0.85s ease-in-out;
 }
