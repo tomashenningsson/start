@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/PageHeader';
+import { useProgress } from '@/hooks';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
 const NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -249,6 +250,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
 }
 
 export default function SkrivPage() {
+  const { progress: appProgress, learnLetter, learnNumber } = useProgress();
   const [mode, setMode] = useState<Mode>('letters');
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -256,6 +258,17 @@ export default function SkrivPage() {
   const items = mode === 'letters' ? LETTERS : NUMBERS;
   const current = items[idx];
   const isSuccess = progress >= SUCCESS_PCT;
+
+  const savedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isSuccess) return;
+    const key = `${mode}-${current}`;
+    if (savedRef.current.has(key)) return;
+    savedRef.current.add(key);
+    if (mode === 'letters') learnLetter(current);
+    else learnNumber(parseInt(current, 10));
+  }, [isSuccess, current, mode, learnLetter, learnNumber]);
 
   const handleProgress = useCallback((pct: number) => setProgress(pct), []);
 
@@ -335,16 +348,22 @@ export default function SkrivPage() {
 
       {/* Navigation dots */}
       <div className="flex justify-center gap-1.5 mt-4 px-4 flex-wrap max-w-sm mx-auto">
-        {items.map((item, i) => (
-          <button key={i} onClick={() => goTo(i)}
-            className={`w-7 h-7 rounded-full text-xs font-black transition-all ${
-              i === idx ? 'bg-orange-400 text-white scale-110 shadow'
-                       : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
-            }`}
-          >
-            {item}
-          </button>
-        ))}
+        {items.map((item, i) => {
+          const learned = mode === 'letters'
+            ? appProgress.learnedLetters.includes(item)
+            : appProgress.learnedNumbers.includes(parseInt(item, 10));
+          return (
+            <button key={i} onClick={() => goTo(i)}
+              className={`w-7 h-7 rounded-full text-xs font-black transition-all ${
+                i === idx ? 'bg-orange-400 text-white scale-110 shadow'
+                : learned ? 'bg-green-100 text-green-600 ring-1 ring-green-300 hover:bg-green-200'
+                : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
+              }`}
+            >
+              {item}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
