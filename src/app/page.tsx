@@ -40,9 +40,9 @@ const activities = [
   },
   {
     href: '/matte',
-    emoji: '➕',
-    title: 'Matte',
-    subtitle: '1 + 2 = ?',
+    emoji: '🌋',
+    title: 'Lavamonstret',
+    subtitle: 'Rädda talen!',
     from: 'from-violet-400',
     to: 'to-purple-400',
     bg: 'bg-violet-50',

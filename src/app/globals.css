@@ -55,11 +55,34 @@
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-/* Falling math equation — ends when card BOTTOM touches lava top.
-   Card height ≈ 60px, lava height = 72px → stop at calc(100% - 132px) */
+/* Falling math equation — normal fall */
 @keyframes equation-fall {
   from { top: -100px; }
   to   { top: calc(100% - 132px); }
+}
+
+/* Post-penalty fall: resumes from a fixed top (set via --fall-from) */
+@keyframes equation-fall-from {
+  from { top: var(--fall-from, -100px); }
+  to   { top: calc(100% - 132px); }
+}
+
+/* Penalty fall: top is fixed inline, this animates translateY the remaining dist */
+@keyframes equation-fall-penalty {
+  from { transform: translateY(0); }
+  to   { transform: translateY(var(--penalty-dist, 200px)); }
+}
+
+/* Burning card when equation hits lava */
+@keyframes equation-burn {
+  0%   { transform: scale(1)    rotate(0deg);  opacity: 1; }
+  30%  { transform: scale(1.08) rotate(-3deg); opacity: 1; filter: brightness(1.4) saturate(3); }
+  65%  { transform: scale(0.85) rotate(4deg);  opacity: 0.7; filter: brightness(2) saturate(5) sepia(0.8); }
+  100% { transform: scale(0.4)  rotate(-6deg); opacity: 0; filter: brightness(3) saturate(8) sepia(1); }
+}
+
+.animate-burn {
+  animation: equation-burn 0.65s ease-in forwards;
 }
 
 /* Wrong answer shake */

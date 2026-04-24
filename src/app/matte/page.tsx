@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useProgress } from '@/hooks/useProgress';
 import { PageHeader } from '@/components/PageHeader';
 
@@ -56,37 +56,28 @@ type GameState = 'idle' | 'playing' | 'gameover';
 type Flash = 'correct' | 'wrong' | null;
 interface DotsAnim { a: number; b: number; op: '+' | '-'; result: number; }
 
-// SVG lava monster — blob-shaped with horns, yellow eyes, jagged teeth
 function LavaMonster({ chomping }: { chomping: boolean }) {
   return (
     <svg
       viewBox="0 0 64 64"
       className={`w-14 h-14 drop-shadow-lg select-none ${chomping ? 'animate-chomp' : ''}`}
     >
-      {/* Horns */}
       <polygon points="16,22 11,4 22,19" fill="#b91c1c" />
       <polygon points="48,22 53,4 42,19" fill="#b91c1c" />
-      {/* Body blob */}
       <ellipse cx="32" cy="38" rx="26" ry="24" fill="#f97316" />
-      {/* Inner glow */}
       <ellipse cx="30" cy="35" rx="16" ry="13" fill="#fb923c" opacity="0.5" />
-      {/* Eyes */}
       <circle cx="22" cy="33" r="8" fill="#fef9c3" />
       <circle cx="42" cy="33" r="8" fill="#fef9c3" />
       <circle cx="22" cy="33" r="5" fill="#f59e0b" />
       <circle cx="42" cy="33" r="5" fill="#f59e0b" />
       <circle cx="23" cy="32" r="3" fill="#1c1917" />
       <circle cx="43" cy="32" r="3" fill="#1c1917" />
-      {/* Eye shine */}
       <circle cx="24" cy="31" r="1.2" fill="white" />
       <circle cx="44" cy="31" r="1.2" fill="white" />
-      {/* Mouth cavity */}
       <path d="M 18 48 Q 32 60 46 48" fill="#7f1d1d" />
-      {/* Teeth */}
       <polygon points="20,48 23,54 26,48" fill="white" />
       <polygon points="28,48 31,56 34,48" fill="white" />
       <polygon points="36,48 39,54 42,48" fill="white" />
-      {/* Drool drop */}
       <ellipse cx="31" cy="59" rx="2.5" ry="3.5" fill="#fb923c" opacity="0.7" />
     </svg>
   );
@@ -95,18 +86,10 @@ function LavaMonster({ chomping }: { chomping: boolean }) {
 function LavaZone({ chomping }: { chomping: boolean }) {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-[72px] pointer-events-none">
-      {/* Wavy lava surface */}
       <div
         className="absolute inset-0 bg-gradient-to-t from-red-700 via-orange-500 to-amber-400"
         style={{ animation: 'lava-wave 2.4s ease-in-out infinite' }}
       />
-      {/* Flame dots */}
-      <div className="absolute top-1 left-3 flex gap-3 text-xl select-none">
-        {['🔥', '🔥', '🔥'].map((f, i) => (
-          <span key={i} style={{ animation: `lava-wave ${1.6 + i * 0.4}s ease-in-out infinite` }}>{f}</span>
-        ))}
-      </div>
-      {/* Monster */}
       <div className="absolute bottom-1 right-2">
         <LavaMonster chomping={chomping} />
       </div>
@@ -114,28 +97,79 @@ function LavaZone({ chomping }: { chomping: boolean }) {
   );
 }
 
-function FallingEquation({ equation, onMissed }: { equation: Equation; onMissed: (id: number) => void }) {
+interface FallingEquationProps {
+  equation: Equation;
+  burning: boolean;
+  onMissed: (id: number) => void;
+  penaltyRef: React.MutableRefObject<(() => void) | null>;
+}
+
+function FallingEquation({ equation, burning, onMissed, penaltyRef }: FallingEquationProps) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [penaltyState, setPenaltyState] = useState<{ top: number; duration: number } | null>(null);
+
+  const applyPenalty = useCallback(() => {
+    const el = divRef.current;
+    const parent = el?.parentElement;
+    if (!el || !parent) return;
+
+    const elRect = el.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+    const currentTop = elRect.top - parentRect.top;
+    const lavaTop = parent.offsetHeight - 132;
+    const remaining = lavaTop - currentTop;
+    if (remaining <= 10) return;
+
+    const newTop = currentTop + remaining * 0.5;
+    const totalRange = lavaTop + 100; // -100px to lavaTop
+    const newDuration = equation.duration * (lavaTop - newTop) / totalRange;
+
+    setPenaltyState({ top: newTop, duration: Math.max(0.3, newDuration) });
+  }, [equation.duration]);
+
+  useEffect(() => {
+    penaltyRef.current = applyPenalty;
+    return () => { penaltyRef.current = null; };
+  }, [applyPenalty, penaltyRef]);
+
+  const handleAnimEnd = (e: React.AnimationEvent) => {
+    if (e.animationName === 'equation-fall' || e.animationName === 'equation-fall-from') {
+      onMissed(equation.id);
+    }
+  };
+
+  const style: React.CSSProperties = penaltyState
+    ? {
+        top: `${penaltyState.top}px`,
+        left: `${equation.left}%`,
+        ['--fall-from' as string]: `${penaltyState.top}px`,
+        animation: `equation-fall-from ${penaltyState.duration}s linear forwards`,
+      }
+    : {
+        left: `${equation.left}%`,
+        animation: `equation-fall ${equation.duration}s linear forwards`,
+      };
+
   return (
-    <div
-      className="absolute"
-      style={{ left: `${equation.left}%`, animation: `equation-fall ${equation.duration}s linear forwards` }}
-      onAnimationEnd={() => onMissed(equation.id)}
-    >
-      <div className="bg-white rounded-2xl px-5 py-3.5 shadow-lg border-2 border-violet-200 whitespace-nowrap">
+    <div ref={divRef} className="absolute" style={style} onAnimationEnd={handleAnimEnd}>
+      <div
+        className={`bg-white rounded-2xl px-5 py-3.5 shadow-lg border-2 whitespace-nowrap transition-colors ${
+          burning ? 'border-orange-400 animate-burn' : 'border-violet-200'
+        }`}
+      >
         <span className="text-3xl font-black text-gray-800">
           {equation.a} {equation.op} {equation.b} = ?
         </span>
+        {burning && <span className="ml-2 text-2xl select-none">🔥</span>}
       </div>
     </div>
   );
 }
 
-// Interactive 10×10 times table
 function TimesTableModal({ onClose }: { onClose: () => void }) {
   const [selRow, setSelRow] = useState<number | null>(null);
   const [selCol, setSelCol] = useState<number | null>(null);
   const product = selRow !== null && selCol !== null ? selRow * selCol : null;
-
   const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   return (
@@ -148,8 +182,6 @@ function TimesTableModal({ onClose }: { onClose: () => void }) {
           <h2 className="text-xl font-black text-gray-800">Gångertabell</h2>
           <button onClick={onClose} className="text-xl text-gray-400 hover:text-gray-600 font-black">✕</button>
         </div>
-
-        {/* Product display */}
         <div className="h-10 flex items-center justify-center mb-2">
           {product !== null ? (
             <div className="text-2xl font-black text-amber-600 bg-amber-50 rounded-2xl px-5 py-1">
@@ -159,25 +191,18 @@ function TimesTableModal({ onClose }: { onClose: () => void }) {
             <p className="text-xs text-gray-400 font-bold">Tryck på ett tal i vänstra kolumnen och övre raden</p>
           )}
         </div>
-
-        {/* Grid */}
         <div className="overflow-x-auto">
           <table className="w-full border-separate border-spacing-0.5 text-xs font-black">
             <thead>
               <tr>
-                {/* Corner cell */}
                 <th className="w-7 h-7 text-gray-300 text-center">×</th>
                 {nums.map(c => (
                   <th key={c}
                     onClick={() => setSelCol(selCol === c ? null : c)}
                     className={`w-7 h-7 rounded-lg cursor-pointer transition-all text-center ${
-                      selCol === c
-                        ? 'bg-violet-500 text-white shadow-md scale-110'
-                        : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
+                      selCol === c ? 'bg-violet-500 text-white shadow-md scale-110' : 'bg-violet-100 text-violet-700 hover:bg-violet-200'
                     }`}
-                  >
-                    {c}
-                  </th>
+                  >{c}</th>
                 ))}
               </tr>
             </thead>
@@ -187,31 +212,20 @@ function TimesTableModal({ onClose }: { onClose: () => void }) {
                   <th
                     onClick={() => setSelRow(selRow === r ? null : r)}
                     className={`w-7 h-7 rounded-lg cursor-pointer transition-all text-center ${
-                      selRow === r
-                        ? 'bg-rose-500 text-white shadow-md scale-110'
-                        : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                      selRow === r ? 'bg-rose-500 text-white shadow-md scale-110' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                     }`}
-                  >
-                    {r}
-                  </th>
+                  >{r}</th>
                   {nums.map(c => {
                     const isHit = selRow === r && selCol === c;
-                    const isRow = selRow === r;
-                    const isCol = selCol === c;
                     return (
                       <td key={c}
                         className={`w-7 h-7 rounded-lg text-center transition-all ${
-                          isHit
-                            ? 'bg-amber-400 text-white shadow-lg font-black text-sm ring-2 ring-amber-500'
-                            : isRow
-                            ? 'bg-rose-100 text-rose-800'
-                            : isCol
-                            ? 'bg-violet-100 text-violet-800'
+                          isHit ? 'bg-amber-400 text-white shadow-lg font-black text-sm ring-2 ring-amber-500'
+                            : selRow === r ? 'bg-rose-100 text-rose-800'
+                            : selCol === c ? 'bg-violet-100 text-violet-800'
                             : 'text-gray-500 hover:bg-gray-100'
                         }`}
-                      >
-                        {r * c}
-                      </td>
+                      >{r * c}</td>
                     );
                   })}
                 </tr>
@@ -227,6 +241,7 @@ function TimesTableModal({ onClose }: { onClose: () => void }) {
 export default function MattePage() {
   const [gameState, setGameState] = useState<GameState>('idle');
   const [equation, setEquation] = useState<Equation | null>(null);
+  const [burningId, setBurningId] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [flash, setFlash] = useState<Flash>(null);
@@ -238,6 +253,7 @@ export default function MattePage() {
   const scoreRef = useRef(0);
   const eqIdRef = useRef(0);
   const livesRef = useRef(3);
+  const equationPenaltyRef = useRef<(() => void) | null>(null);
   scoreRef.current = score;
   livesRef.current = lives;
 
@@ -245,6 +261,7 @@ export default function MattePage() {
 
   const spawnNext = useCallback(() => {
     eqIdRef.current += 1;
+    setBurningId(null);
     setEquation(makeEquation(scoreRef.current, eqIdRef.current));
   }, []);
 
@@ -254,18 +271,21 @@ export default function MattePage() {
   }, []);
 
   const handleMissed = useCallback((id: number) => {
-    setEquation(prev => {
-      if (!prev || prev.id !== id) return prev;
-      showFlash('wrong');
-      setChomping(true);
-      setTimeout(() => setChomping(false), 750);
-      const nl = livesRef.current - 1;
-      livesRef.current = nl;
-      setLives(nl);
-      if (nl <= 0) setGameState('gameover');
-      else setTimeout(spawnNext, 900);
-      return null;
-    });
+    // Guard: only process if the equation with this id is still active
+    setBurningId(id);
+    setChomping(true);
+    showFlash('wrong');
+    const nl = livesRef.current - 1;
+    livesRef.current = nl;
+    setLives(nl);
+    if (nl <= 0) {
+      setTimeout(() => setGameState('gameover'), 800);
+    } else {
+      setTimeout(spawnNext, 900);
+    }
+    setTimeout(() => setChomping(false), 750);
+    // Clear the burning equation after burn animation completes
+    setTimeout(() => { setBurningId(null); setEquation(null); }, 700);
   }, [spawnNext, showFlash]);
 
   const handleAnswer = useCallback((answer: number) => {
@@ -282,34 +302,32 @@ export default function MattePage() {
         setTimeout(() => setDotsPhase('merged'), 1500);
         setTimeout(() => setDots(null), 3500);
         setTimeout(spawnNext, 500);
+        return null;
       } else {
+        // Wrong answer: penalty only — no life lost, same equation continues
         showFlash('wrong');
-        const nl = livesRef.current - 1;
-        livesRef.current = nl;
-        setLives(nl);
-        if (nl <= 0) setGameState('gameover');
-        else setTimeout(spawnNext, 600);
+        equationPenaltyRef.current?.();
+        return prev;
       }
-      return null;
     });
   }, [spawnNext, showFlash, updateMathScore]);
 
   const startGame = () => {
     scoreRef.current = 0; eqIdRef.current = 0; livesRef.current = 3;
     setScore(0); setLives(3); setEquation(null); setFlash(null);
-    setDots(null); setChomping(false); setGameState('playing');
+    setBurningId(null); setDots(null); setChomping(false); setGameState('playing');
     setTimeout(() => { eqIdRef.current = 1; setEquation(makeEquation(0, 1)); }, 700);
   };
 
   if (gameState === 'idle') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-50">
-        <PageHeader title="Matte" emoji="➕" />
+        <PageHeader title="Lavamonstret" emoji="🌋" />
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
-          <div className="text-8xl mb-6 select-none">🧮</div>
-          <h2 className="text-4xl font-black text-gray-800 mb-3">Räkna snabbt!</h2>
+          <div className="text-8xl mb-6 select-none">🌋</div>
+          <h2 className="text-4xl font-black text-gray-800 mb-3">Rädda talen!</h2>
           <p className="text-lg text-gray-500 mb-8 max-w-sm font-semibold">
-            Tal ramlar ner — välj rätt svar innan det når lavan!
+            Tal faller mot lavan — räkna rätt och rädda dem innan monstret äter dem!
           </p>
           {progress.mathHighScore > 0 && (
             <p className="text-xl font-black text-violet-600 mb-6">🏆 Rekord: {progress.mathHighScore} poäng</p>
@@ -332,7 +350,7 @@ export default function MattePage() {
     const isRecord = score >= progress.mathHighScore && score > 0;
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-50">
-        <PageHeader title="Matte" emoji="➕" />
+        <PageHeader title="Lavamonstret" emoji="🌋" />
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
           <div className="text-8xl mb-6 select-none">🎯</div>
           <h2 className="text-4xl font-black text-gray-800 mb-3">Game Over!</h2>
@@ -353,10 +371,10 @@ export default function MattePage() {
     );
   }
 
-  // Playing state — 100dvh so Safari chrome doesn't steal space, compact header+buttons
+  // Playing state
   return (
     <div className="flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden select-none" style={{ height: '100dvh' }}>
-      {/* Score bar — compact */}
+      {/* Score bar */}
       <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-sm border-b border-white/60 shadow-sm z-10">
         <div className="text-xl font-black text-violet-600">{score} p</div>
         <button onClick={() => setShowTable(true)}
@@ -370,17 +388,23 @@ export default function MattePage() {
         </div>
       </div>
 
-      {/* Game area — fills all remaining space between header and buttons */}
+      {/* Game area */}
       <div className="flex-1 relative overflow-hidden min-h-0">
         {equation && (
-          <FallingEquation key={equation.id} equation={equation} onMissed={handleMissed} />
+          <FallingEquation
+            key={equation.id}
+            equation={equation}
+            burning={equation.id === burningId}
+            onMissed={handleMissed}
+            penaltyRef={equationPenaltyRef}
+          />
         )}
         <LavaZone chomping={chomping} />
       </div>
 
-      {/* Answer buttons — compact */}
+      {/* Answer buttons */}
       <div className="flex-shrink-0 z-20 bg-white/90 backdrop-blur-sm border-t border-gray-100 px-4 pt-2 pb-3 safe-bottom">
-        {equation ? (
+        {equation && burningId === null ? (
           <div className="flex gap-3 justify-center max-w-sm mx-auto">
             {equation.options.map((opt, i) => (
               <button key={i} onClick={() => handleAnswer(opt)}
@@ -420,7 +444,7 @@ export default function MattePage() {
         </div>
       )}
 
-      {/* Flash */}
+      {/* Flash overlay */}
       {flash && (
         <div className={`fixed inset-0 pointer-events-none z-30 flex items-center justify-center ${flash === 'correct' ? 'bg-green-400/15' : 'bg-red-400/15'}`}>
           <div className="text-7xl animate-bounce">{flash === 'correct' ? '✅' : '❌'}</div>
