@@ -10,9 +10,9 @@ import { X, Loader2 } from 'lucide-react';
 const activities = [
   {
     href: '/bokstaver',
-    emoji: '🔤',
-    title: 'Bokstäver',
-    subtitle: 'A · B · C',
+    emoji: '🎯',
+    title: 'Bokstavsjakt',
+    subtitle: 'Gissa bokstaven!',
     from: 'from-pink-400',
     to: 'to-rose-400',
     bg: 'bg-pink-50',
@@ -21,8 +21,8 @@ const activities = [
   {
     href: '/siffror',
     emoji: '🔢',
-    title: 'Siffror',
-    subtitle: '1 · 2 · 3',
+    title: 'Räknaren',
+    subtitle: 'Räkna & svara!',
     from: 'from-sky-400',
     to: 'to-cyan-400',
     bg: 'bg-sky-50',
