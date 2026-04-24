@@ -12,7 +12,7 @@ const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
 const GRID = 14; // 14×14 coverage grid
 const CELL = CANVAS_SIZE / GRID; // ~22.9px per cell
-const SUCCESS_PCT = 100;
+const SUCCESS_PCT = 99;
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
