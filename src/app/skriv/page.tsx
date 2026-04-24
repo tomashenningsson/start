@@ -10,8 +10,8 @@ type Mode = 'letters' | 'numbers';
 
 const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
-const GRID = 14; // 14×14 coverage grid
-const CELL = CANVAS_SIZE / GRID; // ~22.9px per cell
+const GRID = 24; // 24×24 coverage grid (~13px cells, fine enough to require crossbars etc)
+const CELL = CANVAS_SIZE / GRID; // ~13.3px per cell
 const SUCCESS_PCT = 100;
 
 // Shared font/position so reference and mask exactly match
