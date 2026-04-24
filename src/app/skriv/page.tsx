@@ -95,6 +95,8 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
   const coveredCellsRef = useRef<Set<string>>(new Set());
   const isDrawingRef = useRef(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
+  // Cache the canvas rect at stroke-start so viewport resize mid-stroke can't shift coords
+  const strokeRectRef = useRef<DOMRect | null>(null);
   // Ref so touch effect always calls the latest onProgress without re-attaching listeners
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
@@ -111,12 +113,11 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     onProgressRef.current(0);
   }, [char]);
 
-  // Helpers — only use refs and constants so they're safe inside effects
-  function canvasPos(clientX: number, clientY: number, canvas: HTMLCanvasElement) {
-    const r = canvas.getBoundingClientRect();
+  // Convert viewport coords → canvas coords using a pre-captured DOMRect
+  function toCanvas(clientX: number, clientY: number, rect: DOMRect) {
     return {
-      x: (clientX - r.left) * (CANVAS_SIZE / r.width),
-      y: (clientY - r.top) * (CANVAS_SIZE / r.height),
+      x: (clientX - rect.left) * (CANVAS_SIZE / rect.width),
+      y: (clientY - rect.top) * (CANVAS_SIZE / rect.height),
     };
   }
 
@@ -162,17 +163,19 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
       e.preventDefault();
       if (!e.touches.length) return;
       isDrawingRef.current = true;
+      // Capture rect ONCE per stroke — immune to Safari toolbar show/hide mid-drag
+      strokeRectRef.current = canvas.getBoundingClientRect();
       const t = e.touches[0];
-      lastPosRef.current = canvasPos(t.clientX, t.clientY, canvas);
+      lastPosRef.current = toCanvas(t.clientX, t.clientY, strokeRectRef.current);
     };
 
     const onMove = (e: TouchEvent) => {
       e.preventDefault();
-      if (!isDrawingRef.current || !e.touches.length) return;
+      if (!isDrawingRef.current || !e.touches.length || !strokeRectRef.current) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       const t = e.touches[0];
-      const pos = canvasPos(t.clientX, t.clientY, canvas);
+      const pos = toCanvas(t.clientX, t.clientY, strokeRectRef.current);
       const last = lastPosRef.current ?? pos;
       paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
       updateCoverage(pos.x, pos.y);
@@ -183,6 +186,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
       e.preventDefault();
       isDrawingRef.current = false;
       lastPosRef.current = null;
+      strokeRectRef.current = null;
     };
 
     const opts: AddEventListenerOptions = { passive: false };
@@ -203,20 +207,25 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
     isDrawingRef.current = true;
-    lastPosRef.current = canvasPos(e.clientX, e.clientY, canvas);
+    strokeRectRef.current = canvas.getBoundingClientRect(); // cache once per stroke
+    lastPosRef.current = toCanvas(e.clientX, e.clientY, strokeRectRef.current);
   };
   const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDrawingRef.current) return;
+    if (!isDrawingRef.current || !strokeRectRef.current) return;
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
-    const pos = canvasPos(e.clientX, e.clientY, canvas);
+    const pos = toCanvas(e.clientX, e.clientY, strokeRectRef.current);
     const last = lastPosRef.current ?? pos;
     paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
     updateCoverage(pos.x, pos.y);
     lastPosRef.current = pos;
   };
-  const onMouseUp = () => { isDrawingRef.current = false; lastPosRef.current = null; };
+  const onMouseUp = () => {
+    isDrawingRef.current = false;
+    lastPosRef.current = null;
+    strokeRectRef.current = null;
+  };
 
   const clear = () => {
     drawCanvasRef.current?.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -265,7 +274,7 @@ export default function SkrivPage() {
   const goPrev = () => goTo((idx - 1 + items.length) % items.length);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 pb-12 overscroll-none">
       <PageHeader title="Skriv" emoji="✏️" />
 
       {/* Mode tabs */}
