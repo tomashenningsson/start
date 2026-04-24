@@ -8,6 +8,7 @@ import { Celebration } from '@/components/Celebration';
 import { PageHeader } from '@/components/PageHeader';
 
 const SWEDISH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ';
+const FULL_ALPHABET = SWEDISH.split('');
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -19,14 +20,18 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 function buildAvailable(word: string, level: 1 | 2 | 3) {
-  const extraCount = level === 1 ? 0 : level === 2 ? 2 : 4;
+  if (level === 3) {
+    // Full alphabet — never mark as placed
+    return FULL_ALPHABET.map((char, id) => ({ char, id, placed: false, isAlpha: true }));
+  }
+  const extraCount = level === 1 ? 0 : 2;
   const wordChars = word.split('');
   const extras = shuffle(SWEDISH.split('').filter(c => !wordChars.includes(c))).slice(0, extraCount);
-  return shuffle([...wordChars, ...extras]).map((char, id) => ({ char, id, placed: false }));
+  return shuffle([...wordChars, ...extras]).map((char, id) => ({ char, id, placed: false, isAlpha: false }));
 }
 
 type Level = 1 | 2 | 3;
-type AvailLetter = { char: string; id: number; placed: boolean };
+type AvailLetter = { char: string; id: number; placed: boolean; isAlpha: boolean };
 
 export default function OrdPage() {
   const [level, setLevel] = useState<Level>(1);
@@ -57,14 +62,20 @@ export default function OrdPage() {
   }, [current, level, initWord]);
 
   const handleAvailClick = (letter: AvailLetter) => {
-    if (letter.placed || celebrating) return;
+    // For full alphabet (level 3), letters are never disabled
+    if (!letter.isAlpha && letter.placed) return;
+    if (celebrating) return;
     const nextEmpty = slots.findIndex(s => s === null);
     if (nextEmpty === -1) return;
 
     const newSlots = [...slots];
     newSlots[nextEmpty] = `${letter.char}:${letter.id}`;
     setSlots(newSlots);
-    setAvail(prev => prev.map(l => l.id === letter.id ? { ...l, placed: true } : l));
+
+    // Only mark placed for non-alphabet letters
+    if (!letter.isAlpha) {
+      setAvail(prev => prev.map(l => l.id === letter.id ? { ...l, placed: true } : l));
+    }
 
     const filled = newSlots.filter(Boolean);
     if (filled.length === current.word.length) {
@@ -72,7 +83,7 @@ export default function OrdPage() {
       if (formed === current.word) {
         setCelebrating(true);
         completeWord(current.word);
-        speak(`Bra jobbat! ${current.hint}!`);
+        speak('Bra jobbat!');
       } else {
         setShaking(true);
         setWrongMsg(true);
@@ -80,7 +91,8 @@ export default function OrdPage() {
           setShaking(false);
           setWrongMsg(false);
           setSlots(Array(current.word.length).fill(null));
-          setAvail(prev => prev.map(l => ({ ...l, placed: false })));
+          // Reset placed state for non-alphabet letters only
+          setAvail(prev => prev.map(l => l.isAlpha ? l : { ...l, placed: false }));
         }, 900);
       }
     }
@@ -93,7 +105,11 @@ export default function OrdPage() {
     const newSlots = [...slots];
     newSlots[idx] = null;
     setSlots(newSlots);
-    setAvail(prev => prev.map(l => l.id === letterId ? { ...l, placed: false } : l));
+    // Only un-place if it's not an alphabet letter
+    setAvail(prev => prev.map(l => {
+      if (l.id !== letterId) return l;
+      return l.isAlpha ? l : { ...l, placed: false };
+    }));
   };
 
   const nextWord = () => {
@@ -154,10 +170,14 @@ export default function OrdPage() {
                   ? shaking
                     ? 'bg-red-100 border-red-400 text-red-600'
                     : 'bg-green-100 border-green-400 text-green-700 hover:bg-green-200 active:scale-90'
-                  : 'bg-white/60 border-dashed border-gray-300 text-gray-300'
+                  : 'bg-white/60 border-dashed border-gray-300'
               }`}
             >
-              {letter ?? ''}
+              {letter ?? (
+                <span className="text-gray-300 opacity-50 select-none">
+                  {current.word[i]}
+                </span>
+              )}
             </button>
           );
         })}
@@ -170,21 +190,24 @@ export default function OrdPage() {
       )}
 
       {/* Available letters */}
-      <div className="flex flex-wrap justify-center gap-3 px-6 max-w-sm md:max-w-md mx-auto">
-        {avail.map(letter => (
-          <button
-            key={letter.id}
-            onClick={() => handleAvailClick(letter)}
-            disabled={letter.placed}
-            className={`w-13 h-13 w-[52px] h-[52px] md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-md transition-all ${
-              letter.placed
-                ? 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-30 scale-90'
-                : 'bg-gradient-to-br from-amber-300 to-orange-400 text-white hover:shadow-lg active:scale-90'
-            }`}
-          >
-            {letter.char}
-          </button>
-        ))}
+      <div className={`flex flex-wrap justify-center gap-3 px-6 mx-auto ${level === 3 ? 'max-w-lg' : 'max-w-sm md:max-w-md'}`}>
+        {avail.map(letter => {
+          const isPlaced = !letter.isAlpha && letter.placed;
+          return (
+            <button
+              key={letter.id}
+              onClick={() => handleAvailClick(letter)}
+              disabled={isPlaced}
+              className={`w-[52px] h-[52px] md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-md transition-all ${
+                isPlaced
+                  ? 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-30 scale-90'
+                  : 'bg-gradient-to-br from-amber-300 to-orange-400 text-white hover:shadow-lg active:scale-90'
+              }`}
+            >
+              {letter.char}
+            </button>
+          );
+        })}
       </div>
 
       {/* Next word button */}

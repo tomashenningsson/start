@@ -42,7 +42,12 @@ export function Celebration({ active, onComplete }: Props) {
   const [exploded, setExploded] = useState(false);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      // Clear immediately when deactivated (e.g. next word)
+      setParticles([]);
+      setExploded(false);
+      return;
+    }
 
     const all = [
       ...makeBurst(50, 32, 18, 0),

@@ -1,9 +1,13 @@
 'use client';
 
 import { useCallback } from 'react';
+import { useSound } from '@/contexts/SoundContext';
 
 export function useSpeech() {
+  const { muted } = useSound();
+
   const speak = useCallback((text: string) => {
+    if (muted) return;
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
     const doSpeak = () => {
@@ -23,7 +27,7 @@ export function useSpeech() {
     } else {
       window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true });
     }
-  }, []);
+  }, [muted]);
 
   return { speak };
 }

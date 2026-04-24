@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useProgress } from '@/hooks/useProgress';
 import { useKidsAuth } from '@/contexts/KidsAuthContext';
+import { useSound } from '@/contexts/SoundContext';
 import { X, Loader2 } from 'lucide-react';
 
 const activities = [
@@ -47,16 +48,36 @@ const activities = [
     bg: 'bg-violet-50',
     ring: 'ring-violet-200',
   },
+  {
+    href: '/skriv',
+    emoji: '✏️',
+    title: 'Skriv',
+    subtitle: 'Rita bokstäver',
+    from: 'from-orange-400',
+    to: 'to-amber-400',
+    bg: 'bg-orange-50',
+    ring: 'ring-orange-200',
+  },
 ];
 
 export default function Home() {
   const { progress } = useProgress();
   const { user, configured, signOut } = useKidsAuth();
+  const { muted, toggleMute } = useSound();
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex flex-col items-center px-4 py-8 safe-top">
-      {/* Auth button top-right */}
+      {/* Top bar: sound toggle left, auth right */}
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={toggleMute}
+          className="text-xl bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 shadow-sm hover:bg-white transition-colors"
+          title={muted ? 'Sätt på ljud' : 'Stäng av ljud'}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
+      </div>
       <div className="absolute top-4 right-4">
         {user ? (
           <div className="flex items-center gap-2">
@@ -100,11 +121,14 @@ export default function Home() {
 
       {/* Activity cards */}
       <div className="grid grid-cols-2 gap-4 w-full max-w-md md:max-w-2xl">
-        {activities.map(a => (
+        {activities.map((a, idx) => (
           <Link
             key={a.href}
             href={a.href}
-            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl ${a.bg} ring-2 ${a.ring} shadow-md hover:shadow-xl active:scale-95 transition-all duration-200 min-h-[160px] md:min-h-[200px] overflow-hidden`}
+            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl ${a.bg} ring-2 ${a.ring} shadow-md hover:shadow-xl active:scale-95 transition-all duration-200 min-h-[160px] md:min-h-[200px] overflow-hidden ${
+              // Last card spans full width when count is odd
+              idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
+            }`}
           >
             <div
               className={`absolute inset-0 bg-gradient-to-br ${a.from} ${a.to} opacity-10 group-hover:opacity-20 transition-opacity`}
