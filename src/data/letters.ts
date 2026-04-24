@@ -28,7 +28,7 @@ export const letters: LetterData[] = [
   { letter: 'T', lower: 't', example: 'Tiger', emoji: '🐯' },
   { letter: 'U', lower: 'u', example: 'Uggla', emoji: '🦉' },
   { letter: 'V', lower: 'v', example: 'Varg', emoji: '🐺' },
-  { letter: 'W', lower: 'w', example: 'Wombat', emoji: '🦭' },
+  { letter: 'W', lower: 'w', example: 'Waffel', emoji: '🧇' },
   { letter: 'X', lower: 'x', example: 'Xylofon', emoji: '🎵' },
   { letter: 'Y', lower: 'y', example: 'Yak', emoji: '🐃' },
   { letter: 'Z', lower: 'z', example: 'Zebra', emoji: '🦓' },

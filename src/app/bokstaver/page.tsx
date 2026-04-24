@@ -80,7 +80,7 @@ export default function BokstaverPage() {
         }
       />
 
-      <div className="flex flex-col items-center px-6 pt-4 gap-5 max-w-sm mx-auto">
+      <div className="flex flex-col items-center px-6 pt-4 gap-4 max-w-sm mx-auto">
         {/* Score row */}
         <div className="flex gap-3">
           <div className="bg-white/80 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-pink-200">
@@ -100,8 +100,8 @@ export default function BokstaverPage() {
           onClick={() => speak(`${current.letter} som i ${current.example}`)}
           className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
         >
-          <div className="text-[8rem] select-none leading-none">{current.emoji}</div>
-          <div className="text-3xl font-black text-gray-700 mt-2">{current.example}</div>
+          <div className="text-[6rem] select-none leading-none">{current.emoji}</div>
+          <div className="text-2xl font-black text-gray-700 mt-1">{current.example}</div>
           <div className="text-sm font-bold text-sky-400 mt-0.5">🔊 Tryck för att lyssna</div>
         </button>
 
@@ -120,7 +120,7 @@ export default function BokstaverPage() {
               <button
                 key={letter}
                 onClick={() => handleAnswer(letter)}
-                className={`py-5 rounded-3xl font-black shadow-md transition-all active:scale-95 ${
+                className={`py-3.5 rounded-3xl font-black shadow-md transition-all active:scale-95 ${
                   isCorrect
                     ? 'bg-green-400 text-white scale-105 shadow-lg shadow-green-200'
                     : isWrong
@@ -128,8 +128,8 @@ export default function BokstaverPage() {
                     : 'bg-white text-gray-700 ring-2 ring-pink-200 hover:ring-pink-400 hover:shadow-lg'
                 }`}
               >
-                <div className="text-4xl">{letter}</div>
-                <div className="text-sm font-bold opacity-50 mt-1">
+                <div className="text-3xl">{letter}</div>
+                <div className="text-xs font-bold opacity-50 mt-0.5">
                   {letters.find(l => l.letter === letter)?.lower}
                 </div>
               </button>
