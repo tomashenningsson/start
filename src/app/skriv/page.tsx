@@ -12,7 +12,7 @@ const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
 const GRID = 14; // 14×14 coverage grid
 const CELL = CANVAS_SIZE / GRID; // ~22.9px per cell
-const SUCCESS_PCT = 55;
+const SUCCESS_PCT = 95;
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
@@ -321,12 +321,6 @@ export default function SkrivPage() {
         </span>
       </div>
 
-      {isSuccess && (
-        <p className="text-center text-lg font-black text-green-600 mb-2 animate-bounce">
-          Bra jobbat! 🎉
-        </p>
-      )}
-
       <p className="text-center text-xs font-bold text-gray-400 mb-3 px-4">
         Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
         {'  ·  '}
@@ -339,6 +333,15 @@ export default function SkrivPage() {
       <div className="px-6 max-w-sm mx-auto w-full">
         <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} />
       </div>
+
+      {/* Success overlay — fixed so it never shifts the canvas position */}
+      {isSuccess && (
+        <div className="fixed inset-x-0 top-1/3 flex justify-center pointer-events-none z-50">
+          <div className="bg-white/90 backdrop-blur-sm rounded-3xl px-8 py-4 shadow-2xl border border-green-200 animate-bounce">
+            <p className="text-2xl font-black text-green-600 text-center">Bra jobbat! 🎉</p>
+          </div>
+        </div>
+      )}
 
       {/* Navigation dots */}
       <div className="flex justify-center gap-1.5 mt-4 px-4 flex-wrap max-w-sm mx-auto">
