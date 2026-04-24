@@ -69,7 +69,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex flex-col items-center px-4 py-8 safe-top">
       {/* Top bar: sound toggle left, auth right */}
-      <div className="absolute top-4 left-4">
+      <div className="w-full flex items-center justify-between mb-4 max-w-md md:max-w-2xl">
         <button
           onClick={toggleMute}
           className="text-xl bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 shadow-sm hover:bg-white transition-colors"
@@ -77,28 +77,28 @@ export default function Home() {
         >
           {muted ? '🔇' : '🔊'}
         </button>
-      </div>
-      <div className="absolute top-4 right-4">
-        {user ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 hidden sm:inline truncate max-w-[120px]">
-              {user.email}
-            </span>
+        <div>
+          {user ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-500 hidden sm:inline truncate max-w-[120px]">
+                {user.email}
+              </span>
+              <button
+                onClick={signOut}
+                className="text-xs font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full px-3 py-1.5 ring-1 ring-gray-200 transition-colors"
+              >
+                Logga ut
+              </button>
+            </div>
+          ) : configured ? (
             <button
-              onClick={signOut}
-              className="text-xs font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full px-3 py-1.5 ring-1 ring-gray-200 transition-colors"
+              onClick={() => setAuthOpen(true)}
+              className="text-sm font-black text-gray-500 bg-white/80 rounded-full px-4 py-1.5 ring-1 ring-gray-200 hover:bg-white transition-colors shadow-sm"
             >
-              Logga ut
+              Logga in
             </button>
-          </div>
-        ) : configured ? (
-          <button
-            onClick={() => setAuthOpen(true)}
-            className="text-sm font-black text-gray-500 bg-white/80 rounded-full px-4 py-1.5 ring-1 ring-gray-200 hover:bg-white transition-colors shadow-sm"
-          >
-            Logga in
-          </button>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       {/* Hero */}
