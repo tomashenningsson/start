@@ -353,24 +353,24 @@ export default function MattePage() {
     );
   }
 
-  // Playing state — flex layout so header+game+answers fit exactly on screen
+  // Playing state — 100dvh so Safari chrome doesn't steal space, compact header+buttons
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden select-none">
-      {/* Score bar */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white/80 backdrop-blur-sm border-b border-white/60 shadow-sm z-10">
-        <div className="text-2xl font-black text-violet-600">{score} p</div>
+    <div className="flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden select-none" style={{ height: '100dvh' }}>
+      {/* Score bar — compact */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-sm border-b border-white/60 shadow-sm z-10">
+        <div className="text-xl font-black text-violet-600">{score} p</div>
         <button onClick={() => setShowTable(true)}
-          className="text-sm font-black text-violet-400 hover:text-violet-600 bg-violet-50 rounded-full px-3 py-1 transition-colors"
+          className="text-xs font-black text-violet-400 hover:text-violet-600 bg-violet-50 rounded-full px-2.5 py-1 transition-colors"
         >📊</button>
         <div className="flex-1" />
-        <div className="flex gap-1.5">
+        <div className="flex gap-1">
           {Array.from({ length: 3 }, (_, i) => (
-            <span key={i} className={`text-2xl transition-all ${i < lives ? '' : 'grayscale opacity-30'}`}>❤️</span>
+            <span key={i} className={`text-xl transition-all ${i < lives ? '' : 'grayscale opacity-30'}`}>❤️</span>
           ))}
         </div>
       </div>
 
-      {/* Game area — fills all remaining space */}
+      {/* Game area — fills all remaining space between header and buttons */}
       <div className="flex-1 relative overflow-hidden min-h-0">
         {equation && (
           <FallingEquation key={equation.id} equation={equation} onMissed={handleMissed} />
@@ -378,18 +378,18 @@ export default function MattePage() {
         <LavaZone chomping={chomping} />
       </div>
 
-      {/* Answer buttons */}
-      <div className="flex-shrink-0 z-20 bg-white/90 backdrop-blur-sm border-t border-gray-100 px-4 pt-3 pb-5 safe-bottom">
+      {/* Answer buttons — compact */}
+      <div className="flex-shrink-0 z-20 bg-white/90 backdrop-blur-sm border-t border-gray-100 px-4 pt-2 pb-3 safe-bottom">
         {equation ? (
           <div className="flex gap-3 justify-center max-w-sm mx-auto">
             {equation.options.map((opt, i) => (
               <button key={i} onClick={() => handleAnswer(opt)}
-                className="flex-1 py-5 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 text-white font-black text-3xl shadow-lg hover:shadow-xl active:scale-95 transition-all"
+                className="flex-1 py-4 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 text-white font-black text-3xl shadow-lg hover:shadow-xl active:scale-95 transition-all"
               >{opt}</button>
             ))}
           </div>
         ) : (
-          <div className="text-center text-gray-400 font-bold py-4">Väntar...</div>
+          <div className="text-center text-gray-400 font-bold py-3">Väntar...</div>
         )}
       </div>
 
