@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { wordList } from '@/data/words';
+import { wordList, WordData } from '@/data/words';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
 import { Celebration } from '@/components/Celebration';
@@ -32,6 +32,16 @@ function buildAvailable(word: string, level: 1 | 2 | 3) {
 type Level = 1 | 2 | 3;
 type AvailLetter = { char: string; id: number; placed: boolean; isAlpha: boolean };
 
+function getShuffledLevel(
+  lvl: Level,
+  cache: React.MutableRefObject<{ level: Level; words: WordData[] } | null>,
+): WordData[] {
+  if (cache.current?.level === lvl) return cache.current.words;
+  const words = shuffle(wordList.filter(w => w.level === lvl));
+  cache.current = { level: lvl, words };
+  return words;
+}
+
 export default function OrdPage() {
   const [level, setLevel] = useState<Level>(1);
   const [wordIdx, setWordIdx] = useState(0);
@@ -49,6 +59,11 @@ export default function OrdPage() {
   const { speak } = useSpeech();
   const { progress, completeWord } = useProgress();
 
+  // Shuffled word list — rebuilt when level changes or all words are exhausted
+  const wordCacheRef = useRef<{ level: Level; words: WordData[] } | null>(null);
+  const shuffledWords = getShuffledLevel(level, wordCacheRef);
+  const current = shuffledWords[wordIdx % shuffledWords.length];
+
   // Refs for inside the stable pointer-event effect
   const isDraggingRef = useRef(false);
   const dragLetterRef = useRef<AvailLetter | null>(null);
@@ -56,9 +71,6 @@ export default function OrdPage() {
   const slotRefs = useRef<(HTMLButtonElement | null)[]>([]);
   // Keep a fresh reference to the placement handler so the effect never goes stale
   const placeRef = useRef<(letter: AvailLetter, slotIdx: number) => void>(() => {});
-
-  const levelWords = wordList.filter(w => w.level === level);
-  const current = levelWords[wordIdx % levelWords.length];
 
   const initWord = useCallback((word: typeof current, lvl: Level) => {
     setSlots(Array(word.word.length).fill(null));
@@ -191,7 +203,7 @@ export default function OrdPage() {
         {([1, 2, 3] as Level[]).map(l => (
           <button
             key={l}
-            onClick={() => { setLevel(l); setWordIdx(0); }}
+            onClick={() => { wordCacheRef.current = null; setLevel(l); setWordIdx(0); }}
             className={`px-5 py-2.5 rounded-full font-black text-sm transition-all ${
               level === l
                 ? 'bg-green-500 text-white shadow-md scale-105'
@@ -281,7 +293,17 @@ export default function OrdPage() {
       {celebrating && (
         <div className="flex justify-center mt-10">
           <button
-            onClick={() => setWordIdx(i => i + 1)}
+            onClick={() => {
+              const next = wordIdx + 1;
+              if (next >= shuffledWords.length) {
+                // All words done — reshuffle for another round
+                wordCacheRef.current = null;
+                getShuffledLevel(level, wordCacheRef);
+                setWordIdx(0);
+              } else {
+                setWordIdx(next);
+              }
+            }}
             className="px-10 py-4 rounded-3xl bg-green-500 text-white font-black text-xl shadow-lg hover:bg-green-600 active:scale-95 transition-all"
           >
             Nästa ord ➡️
