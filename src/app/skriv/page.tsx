@@ -130,7 +130,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
   function updateCoverage(x: number, y: number) {
     const valid = validCellsRef.current;
     const covered = coveredCellsRef.current;
-    const r = Math.ceil(STROKE_WIDTH / 2 / CELL) + 1;
+    const r = Math.ceil(STROKE_WIDTH / 2 / CELL);
     const cgx = Math.floor(x / CELL);
     const cgy = Math.floor(y / CELL);
     for (let dy = -r; dy <= r; dy++) {
