@@ -37,13 +37,26 @@ function unique<T>(arr: T[]): T[] {
   return Array.from(new Set(arr));
 }
 
+function calcTotalStars(p: Omit<Progress, 'totalStars'>): number {
+  return (
+    p.learnedLetters.length +
+    p.learnedNumbers.length +
+    p.completedWords.length * 3 +
+    Math.floor(p.mathHighScore / 5)
+  );
+}
+
 function mergeProgress(a: Progress, b: Progress): Progress {
+  const learnedLetters = unique([...a.learnedLetters, ...b.learnedLetters]);
+  const learnedNumbers = unique([...a.learnedNumbers, ...b.learnedNumbers]);
+  const completedWords = unique([...a.completedWords, ...b.completedWords]);
+  const mathHighScore = Math.max(a.mathHighScore, b.mathHighScore);
   return {
-    learnedLetters: unique([...a.learnedLetters, ...b.learnedLetters]),
-    learnedNumbers: unique([...a.learnedNumbers, ...b.learnedNumbers]),
-    completedWords: unique([...a.completedWords, ...b.completedWords]),
-    mathHighScore: Math.max(a.mathHighScore, b.mathHighScore),
-    totalStars: Math.max(a.totalStars, b.totalStars),
+    learnedLetters,
+    learnedNumbers,
+    completedWords,
+    mathHighScore,
+    totalStars: calcTotalStars({ learnedLetters, learnedNumbers, completedWords, mathHighScore }),
   };
 }
 
@@ -89,7 +102,8 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('[Progress] Failed to load from Supabase:', error); return; }
         if (!data) return;
         const row = data as KidProgressRow;
         const remote: Progress = {
@@ -113,7 +127,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     if (!uid || !sb) return;
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
-      await sb.from('kid_progress').upsert(
+      const { error } = await sb.from('kid_progress').upsert(
         {
           user_id: uid,
           learned_letters: p.learnedLetters,
@@ -125,6 +139,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
         },
         { onConflict: 'user_id' }
       );
+      if (error) console.error('[Progress] Failed to save to Supabase:', error);
     }, 2000);
   }, []);
 
