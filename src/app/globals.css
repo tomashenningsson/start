@@ -55,10 +55,10 @@
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-/* Falling math equation — ends at lava zone (~88px + bottom bar ~118px + header ~60px = 266px) */
+/* Falling math equation — top-based so 100% = game area height, ends at lava zone (72px) */
 @keyframes equation-fall {
-  from { transform: translateY(-130px); }
-  to   { transform: translateY(calc(100vh - 16rem)); }
+  from { top: -100px; }
+  to   { top: calc(100% - 72px); }
 }
 
 /* Wrong answer shake */

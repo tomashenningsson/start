@@ -9,60 +9,78 @@ const NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 type Mode = 'letters' | 'numbers';
 
 const CANVAS_SIZE = 320;
-const STROKE_WIDTH = 18;
+const STROKE_WIDTH = 24;
+const GRID = 14; // 14×14 coverage grid
+const CELL = CANVAS_SIZE / GRID; // ~22.9px per cell
+const SUCCESS_PCT = 55;
 
-// Draw reference character on an offscreen canvas, return the ImageData for hit-testing
+// Shared font/position so reference and mask exactly match
+const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
+const CHAR_Y = Math.round(CANVAS_SIZE * 0.52); // center-ish with middle baseline
+
 function drawReference(ctx: CanvasRenderingContext2D, char: string) {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  ctx.fillStyle = '#f8f7ff';
+  ctx.fillStyle = '#f5f3ff';
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-  // Guide lines
+  // Horizontal baseline guide
   ctx.strokeStyle = '#ddd6fe';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 4]);
   ctx.beginPath();
-  ctx.moveTo(0, CANVAS_SIZE / 2);
-  ctx.lineTo(CANVAS_SIZE, CANVAS_SIZE / 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(CANVAS_SIZE / 2, 0);
-  ctx.lineTo(CANVAS_SIZE / 2, CANVAS_SIZE);
+  ctx.moveTo(16, CHAR_Y + FONT_SIZE * 0.18);
+  ctx.lineTo(CANVAS_SIZE - 16, CHAR_Y + FONT_SIZE * 0.18);
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Reference character — thick, semi-transparent as guide
-  ctx.font = `bold ${CANVAS_SIZE * 0.72}px Arial, sans-serif`;
+  ctx.font = `bold ${FONT_SIZE}px Arial, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(167, 139, 250, 0.18)';
-  ctx.fillText(char, CANVAS_SIZE / 2, CANVAS_SIZE / 2 + CANVAS_SIZE * 0.04);
+  ctx.fillStyle = 'rgba(139, 92, 246, 0.18)';
+  ctx.fillText(char, CANVAS_SIZE / 2, CHAR_Y);
 }
 
-// Create an offscreen mask canvas where filled pixels are the "valid" area
-function buildMask(char: string): ImageData {
+// Build a set of which 14×14 grid cells are "inside" the character
+function buildValidCells(char: string): Set<string> {
   const oc = document.createElement('canvas');
   oc.width = CANVAS_SIZE;
   oc.height = CANVAS_SIZE;
-  const octx = oc.getContext('2d')!;
-  octx.fillStyle = '#000';
-  octx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-  // Draw with generous margin — the valid zone is large so tracing is forgiving
-  const margin = CANVAS_SIZE * 0.08;
-  octx.font = `bold ${CANVAS_SIZE * 0.72 + margin * 2}px Arial, sans-serif`;
-  octx.textAlign = 'center';
-  octx.textBaseline = 'middle';
-  octx.fillStyle = '#fff';
-  octx.fillText(char, CANVAS_SIZE / 2, CANVAS_SIZE / 2 + CANVAS_SIZE * 0.04);
-  return octx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  const ctx = oc.getContext('2d')!;
+
+  // Black background, white letter — slightly larger for forgiving hit zone
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  ctx.font = `bold ${Math.round(FONT_SIZE * 1.12)}px Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(char, CANVAS_SIZE / 2, CHAR_Y);
+
+  const data = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data;
+  const valid = new Set<string>();
+
+  for (let gy = 0; gy < GRID; gy++) {
+    for (let gx = 0; gx < GRID; gx++) {
+      // Sample 3×3 points inside cell; cell is valid if majority are white
+      let hits = 0;
+      for (let sy = 0; sy < 3; sy++) {
+        for (let sx = 0; sx < 3; sx++) {
+          const px = Math.floor(gx * CELL + (sx + 0.5) * CELL / 3);
+          const py = Math.floor(gy * CELL + (sy + 0.5) * CELL / 3);
+          const i = (py * CANVAS_SIZE + px) * 4;
+          if (data[i] > 80) hits++;
+        }
+      }
+      if (hits >= 5) valid.add(`${gx},${gy}`); // majority of 9 samples
+    }
+  }
+  return valid;
 }
 
-function isInsideMask(mask: ImageData, x: number, y: number): boolean {
-  const xi = Math.round(x);
-  const yi = Math.round(y);
-  if (xi < 0 || xi >= CANVAS_SIZE || yi < 0 || yi >= CANVAS_SIZE) return false;
-  const idx = (yi * CANVAS_SIZE + xi) * 4;
-  return mask.data[idx] > 128; // white pixel = inside
+function isInsideValid(validCells: Set<string>, x: number, y: number): boolean {
+  const gx = Math.floor(x / CELL);
+  const gy = Math.floor(y / CELL);
+  return validCells.has(`${gx},${gy}`);
 }
 
 interface TracingCanvasProps {
@@ -73,94 +91,68 @@ interface TracingCanvasProps {
 function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
   const refCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
-  const maskRef = useRef<ImageData | null>(null);
+  const validCellsRef = useRef<Set<string>>(new Set());
+  const coveredCellsRef = useRef<Set<string>>(new Set());
   const isDrawingRef = useRef(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
-  const coveredPixelsRef = useRef(new Set<string>());
-  const totalMaskPixelsRef = useRef(0);
 
-  // Initialize reference canvas and mask when char changes
   useEffect(() => {
     const refCanvas = refCanvasRef.current;
     const drawCanvas = drawCanvasRef.current;
     if (!refCanvas || !drawCanvas) return;
 
-    const refCtx = refCanvas.getContext('2d')!;
-    drawReference(refCtx, char);
+    drawReference(refCanvas.getContext('2d')!, char);
+    drawCanvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    const drawCtx = drawCanvas.getContext('2d')!;
-    drawCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    const mask = buildMask(char);
-    maskRef.current = mask;
-    coveredPixelsRef.current = new Set();
-
-    // Count total valid pixels for progress calculation
-    let total = 0;
-    for (let i = 0; i < mask.data.length; i += 4 * 4) { // sample every 4th pixel
-      if (mask.data[i] > 128) total++;
-    }
-    totalMaskPixelsRef.current = Math.max(total, 1);
+    const valid = buildValidCells(char);
+    validCellsRef.current = valid;
+    coveredCellsRef.current = new Set();
     onProgress(0);
   }, [char, onProgress]);
 
   const getPos = useCallback((e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_SIZE / rect.width;
-    const scaleY = CANVAS_SIZE / rect.height;
-
+    const sx = CANVAS_SIZE / rect.width;
+    const sy = CANVAS_SIZE / rect.height;
     if ('touches' in e) {
-      const touch = e.touches[0] || e.changedTouches[0];
-      return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top) * scaleY,
-      };
+      const t = e.touches[0] ?? e.changedTouches[0];
+      return { x: (t.clientX - rect.left) * sx, y: (t.clientY - rect.top) * sy };
     }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
+    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
   }, []);
 
-  const drawLine = useCallback((
+  const markCoverage = useCallback((x: number, y: number) => {
+    const valid = validCellsRef.current;
+    const covered = coveredCellsRef.current;
+    // Mark all cells within stroke radius as covered (if valid)
+    const radiusCells = Math.ceil(STROKE_WIDTH / 2 / CELL) + 1;
+    const cgx = Math.floor(x / CELL);
+    const cgy = Math.floor(y / CELL);
+    for (let dy = -radiusCells; dy <= radiusCells; dy++) {
+      for (let dx = -radiusCells; dx <= radiusCells; dx++) {
+        const key = `${cgx + dx},${cgy + dy}`;
+        if (valid.has(key)) covered.add(key);
+      }
+    }
+    const pct = Math.min(100, Math.round((covered.size / Math.max(valid.size, 1)) * 100));
+    onProgress(pct);
+  }, [onProgress]);
+
+  const stroke = useCallback((
     ctx: CanvasRenderingContext2D,
     from: { x: number; y: number },
     to: { x: number; y: number },
-    inside: boolean
+    inside: boolean,
   ) => {
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
     ctx.lineTo(to.x, to.y);
-    ctx.strokeStyle = inside ? 'rgba(99, 102, 241, 0.75)' : 'rgba(239, 68, 68, 0.75)';
+    ctx.strokeStyle = inside ? 'rgba(99, 102, 241, 0.78)' : 'rgba(239, 68, 68, 0.72)';
     ctx.lineWidth = STROKE_WIDTH;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
   }, []);
-
-  const updateProgress = useCallback((x: number, y: number) => {
-    const mask = maskRef.current;
-    if (!mask) return;
-    // Mark a small area around the draw point as covered
-    const r = Math.floor(STROKE_WIDTH / 2 / 4); // sample radius
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        const px = Math.round((x + dx * 4) / 4);
-        const py = Math.round((y + dy * 4) / 4);
-        const key = `${px},${py}`;
-        if (!coveredPixelsRef.current.has(key)) {
-          const xi = px * 4;
-          const yi = py * 4;
-          const idx = (yi * CANVAS_SIZE + xi) * 4;
-          if (idx >= 0 && idx < mask.data.length && mask.data[idx] > 128) {
-            coveredPixelsRef.current.add(key);
-          }
-        }
-      }
-    }
-    const pct = Math.min(100, Math.round((coveredPixelsRef.current.size / totalMaskPixelsRef.current) * 100));
-    onProgress(pct);
-  }, [onProgress]);
 
   const startDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -170,7 +162,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     lastPosRef.current = getPos(e, canvas);
   }, [getPos]);
 
-  const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const continueDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     if (!isDrawingRef.current) return;
     const canvas = drawCanvasRef.current;
@@ -178,11 +170,11 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     const ctx = canvas.getContext('2d')!;
     const pos = getPos(e, canvas);
     const last = lastPosRef.current ?? pos;
-    const inside = isInsideMask(maskRef.current!, pos.x, pos.y);
-    drawLine(ctx, last, pos, inside);
-    updateProgress(pos.x, pos.y);
+    const inside = isInsideValid(validCellsRef.current, pos.x, pos.y);
+    stroke(ctx, last, pos, inside);
+    markCoverage(pos.x, pos.y);
     lastPosRef.current = pos;
-  }, [getPos, drawLine, updateProgress]);
+  }, [getPos, stroke, markCoverage]);
 
   const endDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -190,11 +182,9 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     lastPosRef.current = null;
   }, []);
 
-  const clearDrawing = useCallback(() => {
-    const canvas = drawCanvasRef.current;
-    if (!canvas) return;
-    canvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    coveredPixelsRef.current = new Set();
+  const clear = useCallback(() => {
+    drawCanvasRef.current?.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    coveredCellsRef.current = new Set();
     onProgress(0);
   }, [onProgress]);
 
@@ -204,31 +194,17 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
         className="relative rounded-3xl overflow-hidden shadow-xl ring-2 ring-violet-200 touch-none"
         style={{ width: '100%', maxWidth: CANVAS_SIZE, aspectRatio: '1' }}
       >
-        {/* Reference layer */}
-        <canvas
-          ref={refCanvasRef}
-          width={CANVAS_SIZE}
-          height={CANVAS_SIZE}
-          className="absolute inset-0 w-full h-full"
-        />
-        {/* Drawing layer */}
-        <canvas
-          ref={drawCanvasRef}
-          width={CANVAS_SIZE}
-          height={CANVAS_SIZE}
+        <canvas ref={refCanvasRef} width={CANVAS_SIZE} height={CANVAS_SIZE}
+          className="absolute inset-0 w-full h-full" />
+        <canvas ref={drawCanvasRef} width={CANVAS_SIZE} height={CANVAS_SIZE}
           className="absolute inset-0 w-full h-full cursor-crosshair"
-          onMouseDown={startDraw}
-          onMouseMove={draw}
-          onMouseUp={endDraw}
-          onMouseLeave={endDraw}
-          onTouchStart={startDraw}
-          onTouchMove={draw}
-          onTouchEnd={endDraw}
-          onTouchCancel={endDraw}
+          onMouseDown={startDraw} onMouseMove={continueDraw}
+          onMouseUp={endDraw} onMouseLeave={endDraw}
+          onTouchStart={startDraw} onTouchMove={continueDraw}
+          onTouchEnd={endDraw} onTouchCancel={endDraw}
         />
       </div>
-      <button
-        onClick={clearDrawing}
+      <button onClick={clear}
         className="text-sm font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full px-4 py-1.5 ring-1 ring-gray-200 transition-colors shadow-sm"
       >
         🗑️ Rensa
@@ -244,36 +220,26 @@ export default function SkrivPage() {
 
   const items = mode === 'letters' ? LETTERS : NUMBERS;
   const current = items[idx];
-  const isSuccess = progress >= 65;
+  const isSuccess = progress >= SUCCESS_PCT;
 
-  const goNext = () => {
-    setIdx(i => (i + 1) % items.length);
-    setProgress(0);
-  };
-  const goPrev = () => {
-    setIdx(i => (i - 1 + items.length) % items.length);
-    setProgress(0);
-  };
+  const handleProgress = useCallback((pct: number) => setProgress(pct), []);
 
-  // Reset progress when mode or idx changes
-  const handleProgress = useCallback((pct: number) => {
-    setProgress(pct);
-  }, []);
+  const goTo = (i: number) => { setIdx(i); setProgress(0); };
+  const goNext = () => goTo((idx + 1) % items.length);
+  const goPrev = () => goTo((idx - 1 + items.length) % items.length);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 pb-12">
       <PageHeader title="Skriv" emoji="✏️" />
 
       {/* Mode tabs */}
-      <div className="flex gap-2 justify-center px-4 pt-5 mb-6">
+      <div className="flex gap-2 justify-center px-4 pt-5 mb-5">
         {(['letters', 'numbers'] as Mode[]).map(m => (
-          <button
-            key={m}
+          <button key={m}
             onClick={() => { setMode(m); setIdx(0); setProgress(0); }}
             className={`px-5 py-2.5 rounded-full font-black text-sm transition-all ${
-              mode === m
-                ? 'bg-orange-400 text-white shadow-md scale-105'
-                : 'bg-white/80 text-gray-600 hover:bg-white ring-1 ring-gray-200'
+              mode === m ? 'bg-orange-400 text-white shadow-md scale-105'
+                        : 'bg-white/80 text-gray-600 hover:bg-white ring-1 ring-gray-200'
             }`}
           >
             {m === 'letters' ? '🔤 Bokstäver' : '🔢 Siffror'}
@@ -281,57 +247,46 @@ export default function SkrivPage() {
         ))}
       </div>
 
-      {/* Character display */}
-      <div className="flex items-center justify-center gap-4 mb-4 px-4">
-        <button
-          onClick={goPrev}
+      {/* Character navigation */}
+      <div className="flex items-center justify-center gap-4 mb-3 px-4">
+        <button onClick={goPrev}
           className="text-2xl font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 transition-colors"
-        >
-          ‹
-        </button>
-        <div className="text-center">
+        >‹</button>
+        <div className="text-center min-w-[60px]">
           <div className="text-6xl font-black text-gray-800 select-none">{current}</div>
           {mode === 'letters' && (
-            <div className="text-base font-bold text-gray-400 mt-1">
-              {current.toLowerCase()}
-            </div>
+            <div className="text-base font-bold text-gray-400 mt-0.5">{current.toLowerCase()}</div>
           )}
         </div>
-        <button
-          onClick={goNext}
+        <button onClick={goNext}
           className="text-2xl font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 transition-colors"
-        >
-          ›
-        </button>
+        >›</button>
       </div>
 
       {/* Progress bar */}
-      <div className="flex items-center gap-3 px-8 mb-4 max-w-xs mx-auto">
+      <div className="flex items-center gap-3 px-8 mb-2 max-w-xs mx-auto">
         <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden ring-1 ring-gray-200">
           <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              isSuccess ? 'bg-green-400' : 'bg-violet-400'
-            }`}
+            className={`h-full rounded-full transition-all duration-200 ${isSuccess ? 'bg-green-400' : 'bg-violet-400'}`}
             style={{ width: `${progress}%` }}
           />
         </div>
-        <span className={`text-sm font-black ${isSuccess ? 'text-green-500' : 'text-gray-400'}`}>
+        <span className={`text-sm font-black w-8 text-right ${isSuccess ? 'text-green-500' : 'text-gray-400'}`}>
           {isSuccess ? '⭐' : `${progress}%`}
         </span>
       </div>
 
       {isSuccess && (
-        <div className="text-center text-lg font-black text-green-600 mb-3 animate-bounce">
+        <p className="text-center text-lg font-black text-green-600 mb-2 animate-bounce">
           Bra jobbat! 🎉
-        </div>
+        </p>
       )}
 
-      {/* Instructions */}
-      <p className="text-center text-sm font-bold text-gray-400 mb-4 px-4">
+      <p className="text-center text-xs font-bold text-gray-400 mb-3 px-4">
         Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
-        <br />
+        {'  ·  '}
         <span className="text-violet-400">Blått = rätt</span>
-        {' · '}
+        {'  ·  '}
         <span className="text-red-400">Rött = utanför</span>
       </p>
 
@@ -341,15 +296,12 @@ export default function SkrivPage() {
       </div>
 
       {/* Navigation dots */}
-      <div className="flex justify-center gap-1.5 mt-5 px-4 flex-wrap max-w-xs mx-auto">
+      <div className="flex justify-center gap-1.5 mt-4 px-4 flex-wrap max-w-sm mx-auto">
         {items.map((item, i) => (
-          <button
-            key={i}
-            onClick={() => { setIdx(i); setProgress(0); }}
+          <button key={i} onClick={() => goTo(i)}
             className={`w-7 h-7 rounded-full text-xs font-black transition-all ${
-              i === idx
-                ? 'bg-orange-400 text-white scale-110 shadow'
-                : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
+              i === idx ? 'bg-orange-400 text-white scale-110 shadow'
+                       : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
             }`}
           >
             {item}
