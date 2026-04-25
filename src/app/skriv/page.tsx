@@ -11,9 +11,11 @@ type Mode = 'letters' | 'numbers';
 
 const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
-const GRID = 14; // 14×14 coverage grid
-const CELL = CANVAS_SIZE / GRID; // ~22.9px per cell
+const GRID = 14;
+const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
+const MIN_COVERAGE = 82;   // % of character cells that must be covered
+const MIN_QUALITY = 0.52;  // fraction of stroke-center points that must be inside
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
@@ -84,6 +86,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const validCellsRef = useRef<Set<string>>(new Set());
   const coveredCellsRef = useRef<Set<string>>(new Set());
+  const outsideCellsRef = useRef<Set<string>>(new Set());
   const isDrawingRef = useRef(false);
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
   // Cache the canvas rect at stroke-start so viewport resize mid-stroke can't shift coords
@@ -101,6 +104,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     drawCanvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     validCellsRef.current = buildValidCells(char);
     coveredCellsRef.current = new Set();
+    outsideCellsRef.current = new Set();
     onProgressRef.current(0);
   }, [char]);
 
@@ -131,18 +135,27 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
   function updateCoverage(x: number, y: number) {
     const valid = validCellsRef.current;
     const covered = coveredCellsRef.current;
+    const outside = outsideCellsRef.current;
     const r = Math.ceil(STROKE_WIDTH / 2 / CELL) + 1;
     const cgx = Math.floor(x / CELL);
     const cgy = Math.floor(y / CELL);
+
+    // Track whether this stroke's center point is inside or outside
+    const centerKey = `${cgx},${cgy}`;
+    if (!valid.has(centerKey)) outside.add(centerKey);
+
+    // Expand coverage radius for nearby valid cells
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         const key = `${cgx + dx},${cgy + dy}`;
         if (valid.has(key)) covered.add(key);
       }
     }
-    onProgressRef.current(
-      Math.min(100, Math.round((covered.size / Math.max(valid.size, 1)) * 100))
-    );
+
+    const coveragePct = Math.round(covered.size / Math.max(valid.size, 1) * 100);
+    const quality = covered.size / Math.max(covered.size + outside.size, 1);
+    const success = coveragePct >= MIN_COVERAGE && quality >= MIN_QUALITY;
+    onProgressRef.current(success ? 100 : Math.min(coveragePct, 99));
   }
 
   // ── Touch events: native non-passive listeners so preventDefault() stops page scroll ──
@@ -221,6 +234,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
   const clear = () => {
     drawCanvasRef.current?.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     coveredCellsRef.current = new Set();
+    outsideCellsRef.current = new Set();
     onProgressRef.current(0);
   };
 
