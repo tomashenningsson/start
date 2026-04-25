@@ -13,80 +13,72 @@ const activities = [
     emoji: '🎯',
     title: 'Bokstavsjakt',
     subtitle: 'Gissa bokstaven!',
-    from: 'from-pink-400',
-    to: 'to-rose-400',
-    bg: 'bg-pink-50',
-    ring: 'ring-pink-200',
+    gradient: 'linear-gradient(135deg, #be123c 0%, #e11d48 30%, #ec4899 65%, #c026d3 100%)',
+    iris: 'linear-gradient(225deg, #7c3aed 0%, #db2777 55%, #f97316 100%)',
+    shadow: 'rgba(236,72,153,0.55)',
   },
   {
     href: '/siffror',
     emoji: '🔢',
     title: 'Räknaren',
     subtitle: 'Räkna & svara!',
-    from: 'from-sky-400',
-    to: 'to-cyan-400',
-    bg: 'bg-sky-50',
-    ring: 'ring-sky-200',
+    gradient: 'linear-gradient(135deg, #0369a1 0%, #0284c7 30%, #06b6d4 65%, #0d9488 100%)',
+    iris: 'linear-gradient(225deg, #0f766e 0%, #0ea5e9 55%, #818cf8 100%)',
+    shadow: 'rgba(6,182,212,0.55)',
   },
   {
     href: '/ord',
     emoji: '🧩',
     title: 'Ordpusslet',
     subtitle: 'Dra & Stava!',
-    from: 'from-green-400',
-    to: 'to-emerald-400',
-    bg: 'bg-green-50',
-    ring: 'ring-green-200',
+    gradient: 'linear-gradient(135deg, #166534 0%, #16a34a 30%, #22c55e 65%, #84cc16 100%)',
+    iris: 'linear-gradient(225deg, #0891b2 0%, #10b981 55%, #bef264 100%)',
+    shadow: 'rgba(34,197,94,0.55)',
   },
   {
     href: '/matte',
     emoji: '🌋',
     title: 'Lavamonstret',
     subtitle: 'Rädda talen!',
-    from: 'from-violet-400',
-    to: 'to-purple-400',
-    bg: 'bg-violet-50',
-    ring: 'ring-violet-200',
+    gradient: 'linear-gradient(135deg, #5b21b6 0%, #7c3aed 30%, #a855f7 65%, #db2777 100%)',
+    iris: 'linear-gradient(225deg, #e11d48 0%, #9333ea 55%, #6366f1 100%)',
+    shadow: 'rgba(168,85,247,0.55)',
   },
   {
     href: '/skriv',
     emoji: '🖊️',
     title: 'Spårskolan',
     subtitle: 'Spåra bokstäver!',
-    from: 'from-orange-400',
-    to: 'to-amber-400',
-    bg: 'bg-orange-50',
-    ring: 'ring-orange-200',
+    gradient: 'linear-gradient(135deg, #b45309 0%, #d97706 30%, #f59e0b 65%, #fb923c 100%)',
+    iris: 'linear-gradient(225deg, #dc2626 0%, #ea580c 55%, #fde68a 100%)',
+    shadow: 'rgba(251,146,60,0.55)',
   },
   {
     href: '/godis',
     emoji: '🍬',
     title: 'Godisspelet',
     subtitle: 'Matcha siffror!',
-    from: 'from-pink-400',
-    to: 'to-purple-400',
-    bg: 'bg-pink-50',
-    ring: 'ring-pink-200',
+    gradient: 'linear-gradient(135deg, #9d174d 0%, #db2777 30%, #f472b6 65%, #a855f7 100%)',
+    iris: 'linear-gradient(225deg, #7c3aed 0%, #ec4899 55%, #fda4af 100%)',
+    shadow: 'rgba(244,114,182,0.55)',
   },
   {
     href: '/storst',
     emoji: '⚡',
     title: 'Störst!',
     subtitle: 'Vem är störst?',
-    from: 'from-indigo-400',
-    to: 'to-blue-400',
-    bg: 'bg-indigo-50',
-    ring: 'ring-indigo-200',
+    gradient: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 30%, #6366f1 65%, #818cf8 100%)',
+    iris: 'linear-gradient(225deg, #0891b2 0%, #4f46e5 55%, #a78bfa 100%)',
+    shadow: 'rgba(99,102,241,0.55)',
   },
   {
     href: '/zombie-math',
     emoji: '🧟',
     title: 'Zombie Matte',
     subtitle: 'Stoppa zombien!',
-    from: 'from-green-700',
-    to: 'to-red-700',
-    bg: 'bg-gray-900',
-    ring: 'ring-red-900',
+    gradient: 'linear-gradient(135deg, #14532d 0%, #15803d 30%, #22c55e 65%, #dc2626 100%)',
+    iris: 'linear-gradient(225deg, #991b1b 0%, #b91c1c 55%, #4ade80 100%)',
+    shadow: 'rgba(22,163,74,0.55)',
   },
 ];
 
@@ -195,17 +187,70 @@ export default function Home() {
             href={a.href}
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
-            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl ${a.bg} ring-2 ${a.ring} shadow-md hover:shadow-xl active:scale-95 transition-all duration-200 min-h-[160px] md:min-h-[200px] overflow-hidden outline-none focus:outline-none select-none ${
-              // Last card spans full width when count is odd
+            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] outline-none focus:outline-none select-none ${
               idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
             }`}
+            style={{
+              boxShadow: `0 8px 32px -4px ${a.shadow}, 0 0 0 1px rgba(255,255,255,0.18), 0 1px 0 rgba(255,255,255,0.25) inset`,
+            }}
           >
+            {/* Blurred glass base */}
+            <div className="absolute inset-0 backdrop-blur-md bg-black/20" />
+
+            {/* Main rich gradient */}
             <div
-              className={`absolute inset-0 bg-gradient-to-br ${a.from} ${a.to} opacity-10 group-hover:opacity-20 transition-opacity`}
+              className="absolute inset-0 opacity-70 group-hover:opacity-85 transition-opacity duration-300"
+              style={{ background: a.gradient }}
             />
-            <div className="text-5xl md:text-6xl mb-3 select-none">{a.emoji}</div>
-            <div className="text-2xl md:text-3xl font-black text-gray-800">{a.title}</div>
-            <div className="text-sm md:text-base font-semibold text-gray-400 mt-1">{a.subtitle}</div>
+
+            {/* Iridescent oil-colour overlay */}
+            <div
+              className="absolute inset-0 opacity-35 group-hover:opacity-50 transition-opacity duration-300 mix-blend-screen"
+              style={{ background: a.iris }}
+            />
+
+            {/* Top gloss — the glass-bubble shine */}
+            <div
+              className="absolute inset-x-0 top-0 h-3/5 rounded-t-3xl"
+              style={{ background: 'linear-gradient(165deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.12) 38%, transparent 70%)' }}
+            />
+
+            {/* Bottom soft reflection */}
+            <div
+              className="absolute inset-x-8 bottom-0 h-12"
+              style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.15) 0%, transparent 70%)' }}
+            />
+
+            {/* Inner edge lighting (glass rim) */}
+            <div
+              className="absolute inset-0 rounded-3xl"
+              style={{ boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.55), inset 0 -1px 1px rgba(255,255,255,0.12), inset 1px 0 1px rgba(255,255,255,0.18), inset -1px 0 1px rgba(255,255,255,0.18)' }}
+            />
+
+            {/* Hover shimmer ray */}
+            <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+              <div
+                className="absolute inset-y-0 w-1/3 -translate-x-full group-hover:translate-x-[400%] transition-transform duration-700 ease-out -skew-x-12"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)' }}
+              />
+            </div>
+
+            {/* Content */}
+            <div
+              className="relative z-10 text-5xl md:text-7xl mb-3 select-none"
+              style={{ filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.35))' }}
+            >
+              {a.emoji}
+            </div>
+            <div
+              className="relative z-10 text-2xl md:text-3xl font-black text-white tracking-tight"
+              style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}
+            >
+              {a.title}
+            </div>
+            <div className="relative z-10 text-sm md:text-base font-semibold text-white/75 mt-1">
+              {a.subtitle}
+            </div>
           </Link>
         ))}
       </div>
