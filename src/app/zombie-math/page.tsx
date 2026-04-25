@@ -30,7 +30,7 @@ const MIN_BAR_GAP    = 4;
 const WRONG_BOOST    = 2.0;
 const WRONG_BOOST_MS = 2500;
 const PUSH_AMOUNT    = 22;
-const PUSH_COOLDOWN_S = 20;
+const PUSH_COOLDOWN_S = 12;
 
 const STARS = Array.from({ length: 75 }, (_, i) => ({
   id: i,
