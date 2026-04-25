@@ -87,9 +87,12 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex flex-col items-center px-4 py-8 safe-top">
-      {/* Top bar: sound toggle left, auth right */}
-      <div className="absolute top-4 left-4">
+    <main className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex flex-col items-center px-4 pb-8">
+      {/* Top bar: sound toggle left, auth right — respects iPhone safe area */}
+      <div
+        className="w-full flex justify-between items-center py-3"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+      >
         <button
           onClick={toggleMute}
           className="text-xl bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 shadow-sm hover:bg-white transition-colors"
@@ -97,32 +100,32 @@ export default function Home() {
         >
           {muted ? '🔇' : '🔊'}
         </button>
-      </div>
-      <div className="absolute top-4 right-4">
-        {user ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 hidden sm:inline truncate max-w-[120px]">
-              {user.email}
-            </span>
+        <div>
+          {user ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-500 hidden sm:inline truncate max-w-[120px]">
+                {user.email}
+              </span>
+              <button
+                onClick={signOut}
+                className="text-xs font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full px-3 py-1.5 ring-1 ring-gray-200 transition-colors"
+              >
+                Logga ut
+              </button>
+            </div>
+          ) : configured ? (
             <button
-              onClick={signOut}
-              className="text-xs font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full px-3 py-1.5 ring-1 ring-gray-200 transition-colors"
+              onClick={() => setAuthOpen(true)}
+              className="text-sm font-black text-gray-500 bg-white/80 rounded-full px-4 py-1.5 ring-1 ring-gray-200 hover:bg-white transition-colors shadow-sm"
             >
-              Logga ut
+              Logga in
             </button>
-          </div>
-        ) : configured ? (
-          <button
-            onClick={() => setAuthOpen(true)}
-            className="text-sm font-black text-gray-500 bg-white/80 rounded-full px-4 py-1.5 ring-1 ring-gray-200 hover:bg-white transition-colors shadow-sm"
-          >
-            Logga in
-          </button>
-        ) : null}
+          ) : <div />}
+        </div>
       </div>
 
       {/* Hero */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-10 mt-4">
         <div className="text-7xl mb-3 select-none">🌟</div>
         <h1 className="text-5xl md:text-6xl font-black text-gray-800 mb-4 tracking-tight">
           Lär dig!
