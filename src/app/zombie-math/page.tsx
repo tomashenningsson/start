@@ -87,7 +87,7 @@ function BarrierEl({ b }: { b: Barrier }) {
   );
 }
 
-function MenuScreen({ onStart }: { onStart: () => void }) {
+function MenuScreen({ onStart }: { onStart: (mode: 'easy' | 'normal') => void }) {
   return (
     <div style={{
       width: '100vw', height: '100dvh', overflow: 'hidden',
@@ -121,15 +121,26 @@ function MenuScreen({ onStart }: { onStart: () => void }) {
         Lös mattetal för att bygga glödande barriärer.<br />
         Knuffa zombien längre bort för att vinna mer tid!
       </p>
-      <button onClick={onStart} style={{
-        background: 'linear-gradient(135deg, #dc2626, #991b1b)',
-        border: 'none', borderRadius: 18, color: '#fff',
-        fontWeight: 800, fontSize: 22, padding: '16px 54px',
-        cursor: 'pointer', letterSpacing: 3,
-        boxShadow: '0 6px 30px rgba(220,38,38,0.65)',
-      }}>
-        SPELA
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+        <button onClick={() => onStart('normal')} style={{
+          background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+          border: 'none', borderRadius: 18, color: '#fff',
+          fontWeight: 800, fontSize: 20, padding: '14px 48px',
+          cursor: 'pointer', letterSpacing: 3,
+          boxShadow: '0 6px 30px rgba(220,38,38,0.65)',
+        }}>
+          SPELA ⭐3/tal
+        </button>
+        <button onClick={() => onStart('easy')} style={{
+          background: 'linear-gradient(135deg, #1d4ed8, #1e40af)',
+          border: 'none', borderRadius: 18, color: '#fff',
+          fontWeight: 800, fontSize: 16, padding: '12px 36px',
+          cursor: 'pointer', letterSpacing: 2,
+          boxShadow: '0 4px 20px rgba(29,78,216,0.5)',
+        }}>
+          LÄTT — 60% fart ⭐1/tal
+        </button>
+      </div>
       <style>{`@keyframes zFloat { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-10px) rotate(4deg)} }`}</style>
     </div>
   );
@@ -180,8 +191,10 @@ export default function ZombieGame() {
   const [shake, setShake]       = useState(false);
   const [zStruggle, setZStruggle] = useState(false);
   const [pushCooldown, setPushCooldown] = useState(0);
+  const [mode, setMode] = useState<'easy' | 'normal'>('normal');
 
   const pushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const modeRef = useRef<'easy' | 'normal'>('normal');
 
   const gRef = useRef({
     zPos: ZOMBIE_INIT,
@@ -191,7 +204,7 @@ export default function ZombieGame() {
     nextId: 0,
   });
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback((selectedMode: 'easy' | 'normal') => {
     if (pushIntervalRef.current) clearInterval(pushIntervalRef.current);
     pushIntervalRef.current = null;
     const g = gRef.current;
@@ -201,6 +214,8 @@ export default function ZombieGame() {
     setInput(''); setQuestion(mkQuestion(1));
     setFeedback(null); setShake(false); setZStruggle(false);
     setPushCooldown(0);
+    setMode(selectedMode);
+    modeRef.current = selectedMode;
     setGs('playing');
   }, []);
 
@@ -233,7 +248,8 @@ export default function ZombieGame() {
         g.barriers = [...g.barriers, nb].sort((a, b) => b.position - a.position);
         setBarriers([...g.barriers]);
       }
-      g.score += 3 * g.level;
+      const pts = modeRef.current === 'easy' ? 1 : 3;
+      g.score += pts * g.level;
       g.level  = Math.floor(g.score / 24) + 1;
       setScore(g.score);
       setLevel(g.level);
@@ -288,7 +304,8 @@ export default function ZombieGame() {
     const id = setInterval(() => {
       const now = Date.now();
       if (now > g.boostEnd) g.boost = 1;
-      const speed = BASE_SPEED * (1 + (g.level - 1) * 0.12) * g.boost;
+      const speedMult = modeRef.current === 'easy' ? 0.6 : 1.0;
+      const speed = BASE_SPEED * speedMult * (1 + (g.level - 1) * 0.12) * g.boost;
       const step  = speed * (TICK_MS / 1000);
       const blocking = g.barriers.find(b =>
         b.position <= g.zPos && (g.zPos - b.position) <= TRIGGER_DIST
@@ -311,7 +328,7 @@ export default function ZombieGame() {
     return () => clearInterval(id);
   }, [gs]);
 
-  if (gs === 'menu')     return <MenuScreen onStart={startGame} />;
+  if (gs === 'menu')     return <MenuScreen onStart={(m) => startGame(m)} />;
   if (gs === 'gameover') return <GameOverScreen score={score} level={level} onRestart={startGame} />;
 
   const progress = Math.max(0, (zPos - GAMEOVER_POS) / (ZOMBIE_INIT - GAMEOVER_POS));
@@ -363,12 +380,21 @@ export default function ZombieGame() {
           <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 20, textShadow: '0 0 10px rgba(74,222,128,0.5)' }}>
             ⭐ {score}
           </div>
-          <div style={{
-            color: '#f87171', fontWeight: 700, fontSize: 15,
-            background: 'rgba(0,0,0,0.35)', padding: '4px 14px', borderRadius: 10,
-            border: '1px solid rgba(248,113,113,0.3)',
-          }}>
-            NIVÅ {level}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {mode === 'easy' && (
+              <div style={{
+                color: '#93c5fd', fontWeight: 700, fontSize: 13,
+                background: 'rgba(29,78,216,0.25)', padding: '4px 10px', borderRadius: 10,
+                border: '1px solid rgba(147,197,253,0.3)',
+              }}>LÄTT</div>
+            )}
+            <div style={{
+              color: '#f87171', fontWeight: 700, fontSize: 15,
+              background: 'rgba(0,0,0,0.35)', padding: '4px 14px', borderRadius: 10,
+              border: '1px solid rgba(248,113,113,0.3)',
+            }}>
+              NIVÅ {level}
+            </div>
           </div>
         </div>
         {/* Characters + barriers */}
