@@ -18,7 +18,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-type Level = 'easy' | 'hard';
+type Level = 'easy' | 'hard' | 'expert';
 
 type Pile = {
   id: number;
@@ -38,7 +38,10 @@ type DragNum = {
 type RoundState = { piles: Pile[]; dragNums: DragNum[] };
 
 function generateRound(level: Level): RoundState {
-  const pool = level === 'easy' ? [1, 2, 3, 4, 5] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const pool =
+    level === 'easy' ? [1, 2, 3, 4, 5] :
+    level === 'hard' ? [1, 2, 3, 4, 5, 6, 7, 8, 9] :
+    Array.from({ length: 20 }, (_, i) => i + 1);
   const counts = shuffle(pool).slice(0, 3);
   const emojis = shuffle([...CANDY_EMOJIS]).slice(0, 3);
   const piles: Pile[] = counts.map((count, i) => ({
@@ -168,7 +171,7 @@ export default function GodisPage() {
 
   const numWord = (v: number) => numbers.find(n => n.value === v)?.word ?? String(v);
   const emojiSize = (count: number) =>
-    count <= 3 ? 'text-4xl' : count <= 6 ? 'text-2xl' : 'text-xl';
+    count <= 3 ? 'text-4xl' : count <= 6 ? 'text-2xl' : count <= 12 ? 'text-xl' : 'text-base';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 pb-12 select-none">
@@ -184,17 +187,21 @@ export default function GodisPage() {
 
       {/* Level tabs */}
       <div className="flex gap-2 justify-center px-4 pt-5">
-        {(['easy', 'hard'] as Level[]).map(l => (
+        {([
+          { key: 'easy', label: '⭐ 1–5' },
+          { key: 'hard', label: '⭐⭐ 1–9' },
+          { key: 'expert', label: '⭐⭐⭐ 1–20' },
+        ] as { key: Level; label: string }[]).map(({ key, label }) => (
           <button
-            key={l}
-            onClick={() => setLevel(l)}
-            className={`px-5 py-2.5 rounded-full font-black text-sm transition-all ${
-              level === l
+            key={key}
+            onClick={() => setLevel(key)}
+            className={`px-4 py-2.5 rounded-full font-black text-sm transition-all ${
+              level === key
                 ? 'bg-pink-500 text-white shadow-md scale-105'
                 : 'bg-white/80 text-gray-600 hover:bg-white ring-1 ring-gray-200'
             }`}
           >
-            {l === 'easy' ? '⭐ 1–5' : '⭐⭐ 1–9'}
+            {label}
           </button>
         ))}
       </div>
