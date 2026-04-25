@@ -193,7 +193,7 @@ export default function Home() {
           <Link
             key={a.href}
             href={a.href}
-            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl ${a.bg} ring-2 ${a.ring} shadow-md hover:shadow-xl active:scale-95 transition-all duration-200 min-h-[160px] md:min-h-[200px] overflow-hidden ${
+            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl ${a.bg} ring-2 ${a.ring} shadow-md hover:shadow-xl active:scale-95 transition-all duration-200 min-h-[160px] md:min-h-[200px] overflow-hidden outline-none focus:outline-none ${
               // Last card spans full width when count is odd
               idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
             }`}
