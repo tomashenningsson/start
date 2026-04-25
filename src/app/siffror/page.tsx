@@ -9,6 +9,8 @@ import { PageHeader } from '@/components/PageHeader';
 
 const COUNTING_EMOJIS = ['🍎', '⭐', '🐶', '🦋', '🎈', '🌸', '🏀', '🐱', '🐸', '🍪'];
 const MAX_VALUE = numbers[numbers.length - 1].value; // 20
+const INITIAL_MAX = 4;    // start with 0–4
+const UNLOCK_EVERY = 3;   // correct answers needed to unlock next number
 
 function buildChoices(correct: number): number[] {
   const candidates = new Set<number>([correct]);
@@ -17,7 +19,6 @@ function buildChoices(correct: number): number[] {
     if (correct + offset <= MAX_VALUE) candidates.add(correct + offset);
     if (offset > MAX_VALUE) break;
   }
-  // Shuffle
   const arr = Array.from(candidates).slice(0, 4);
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -30,20 +31,27 @@ function randomEmoji(): string {
   return COUNTING_EMOJIS[Math.floor(Math.random() * COUNTING_EMOJIS.length)];
 }
 
-// Returns the first unlearned value in 0..MAX_VALUE, or 0 if all learned.
-function firstUnlearned(learnedNumbers: number[]): number {
-  const learned = new Set(learnedNumbers);
-  for (let i = 0; i <= MAX_VALUE; i++) {
-    if (!learned.has(i)) return i;
-  }
-  return 0;
+// Pick a random number from 0..max, avoiding `exclude` if possible.
+function pickRandom(max: number, exclude: number): number {
+  if (max === 0) return 0;
+  const candidates = Array.from({ length: max + 1 }, (_, i) => i).filter(n => n !== exclude);
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+// Derive a sensible starting pool ceiling from saved progress.
+function initialMax(learnedNumbers: number[]): number {
+  return Math.min(MAX_VALUE, Math.max(INITIAL_MAX, learnedNumbers.length));
 }
 
 export default function SiffrorPage() {
   const { speak } = useSpeech();
   const { progress, learnNumber } = useProgress();
 
-  const [currentValue, setCurrentValue] = useState(0);
+  const [unlockedMax, setUnlockedMax] = useState(INITIAL_MAX);
+  const [correctSinceUnlock, setCorrectSinceUnlock] = useState(0);
+  const [currentValue, setCurrentValue] = useState(() =>
+    Math.floor(Math.random() * (INITIAL_MAX + 1))
+  );
   const [choices, setChoices] = useState(() => buildChoices(0));
   const [emoji, setEmoji] = useState(randomEmoji);
   const [wrong, setWrong] = useState<number | null>(null);
@@ -51,26 +59,19 @@ export default function SiffrorPage() {
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
 
-  // Jump to first unlearned number once progress has loaded (only on mount).
+  // Adjust starting pool once saved progress has loaded (run once only).
   const initialisedRef = useRef(false);
   useEffect(() => {
-    if (initialisedRef.current) return;
-    // progress.learnedNumbers is non-empty once real data is present
-    if (progress.learnedNumbers.length === 0) return;
+    if (initialisedRef.current || progress.learnedNumbers.length === 0) return;
     initialisedRef.current = true;
-    const start = firstUnlearned(progress.learnedNumbers);
+    const max = initialMax(progress.learnedNumbers);
+    const start = pickRandom(max, -1);
+    setUnlockedMax(max);
     setCurrentValue(start);
     setChoices(buildChoices(start));
   }, [progress.learnedNumbers]);
 
   const current = numbers.find(n => n.value === currentValue) ?? numbers[0];
-
-  const goToNext = (fromValue: number) => {
-    const next = (fromValue + 1) % (MAX_VALUE + 1);
-    setCurrentValue(next);
-    setChoices(buildChoices(next));
-    setEmoji(randomEmoji());
-  };
 
   const handleAnswer = (num: number) => {
     if (celebrating || wrong !== null) return;
@@ -80,6 +81,15 @@ export default function SiffrorPage() {
       setScore(s => s + 1);
       setStreak(s => s + 1);
       speak('Bra jobbat!');
+      // Unlock next number after UNLOCK_EVERY correct answers.
+      setCorrectSinceUnlock(prev => {
+        const next = prev + 1;
+        if (next >= UNLOCK_EVERY && unlockedMax < MAX_VALUE) {
+          setUnlockedMax(m => m + 1);
+          return 0;
+        }
+        return next;
+      });
     } else {
       setWrong(num);
       setStreak(0);
@@ -90,7 +100,11 @@ export default function SiffrorPage() {
 
   const nextQuestion = () => {
     setCelebrating(false);
-    goToNext(currentValue);
+    // unlockedMax is already updated (re-render happened between correct click and Nästa click)
+    const next = pickRandom(unlockedMax, currentValue);
+    setCurrentValue(next);
+    setChoices(buildChoices(next));
+    setEmoji(randomEmoji());
   };
 
   const emojiTextSize =
