@@ -185,7 +185,9 @@ export default function Home() {
           <Link
             key={a.href}
             href={a.href}
-            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] outline-none focus:outline-none ${
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] outline-none focus:outline-none select-none ${
               idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
             }`}
             style={{
