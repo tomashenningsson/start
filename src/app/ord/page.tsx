@@ -6,6 +6,8 @@ import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
 import { Celebration } from '@/components/Celebration';
 import { PageHeader } from '@/components/PageHeader';
+import { GameBackground } from '@/components/GameBackground';
+import { GAME_THEMES } from '@/lib/gameThemes';
 
 const SWEDISH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ';
 const FULL_ALPHABET = SWEDISH.split('');
@@ -187,7 +189,7 @@ export default function OrdPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 pb-12 select-none">
+    <GameBackground theme={GAME_THEMES.ord} className="pb-12 select-none">
       <PageHeader
         title="Ordpusslet"
         emoji="🧩"
@@ -207,7 +209,7 @@ export default function OrdPage() {
             className={`px-5 py-2.5 rounded-full font-black text-sm transition-all ${
               level === l
                 ? 'bg-green-500 text-white shadow-md scale-105'
-                : 'bg-white/80 text-gray-600 hover:bg-white ring-1 ring-gray-200'
+                : 'bg-white/10 text-white/70 hover:bg-white/20 ring-1 ring-white/20'
             }`}
           >
             {'⭐'.repeat(l)} Nivå {l}
@@ -218,7 +220,7 @@ export default function OrdPage() {
       {/* Word hint */}
       <div className="flex flex-col items-center mt-7 mb-5 px-4 text-center">
         <div className="text-8xl md:text-9xl mb-4">{current.emoji}</div>
-        <p className="text-lg font-bold text-gray-400">Vad heter detta?</p>
+        <p className="text-lg font-bold text-white/60">Vad heter detta?</p>
         <button
           onClick={() => speak(current.hint)}
           className="mt-1 text-sky-500 font-bold text-sm hover:text-sky-700 transition-colors"
@@ -326,6 +328,6 @@ export default function OrdPage() {
           {dragLetter.char}
         </div>
       )}
-    </div>
+    </GameBackground>
   );
 }

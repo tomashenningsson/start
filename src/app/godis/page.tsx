@@ -6,6 +6,8 @@ import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
 import { Celebration } from '@/components/Celebration';
 import { PageHeader } from '@/components/PageHeader';
+import { GameBackground } from '@/components/GameBackground';
+import { GAME_THEMES } from '@/lib/gameThemes';
 
 const CANDY_EMOJIS = ['🍬', '🍭', '🍫', '🍩', '🍪', '🧁'];
 
@@ -174,7 +176,7 @@ export default function GodisPage() {
     count <= 3 ? 'text-4xl' : count <= 6 ? 'text-2xl' : count <= 12 ? 'text-xl' : 'text-base';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 pb-12 select-none">
+    <GameBackground theme={GAME_THEMES.godis} className="pb-12 select-none">
       <PageHeader
         title="Godisspelet"
         emoji="🍬"
@@ -198,7 +200,7 @@ export default function GodisPage() {
             className={`px-4 py-2.5 rounded-full font-black text-sm transition-all ${
               level === key
                 ? 'bg-pink-500 text-white shadow-md scale-105'
-                : 'bg-white/80 text-gray-600 hover:bg-white ring-1 ring-gray-200'
+                : 'bg-white/10 text-white/70 hover:bg-white/20 ring-1 ring-white/20'
             }`}
           >
             {label}
@@ -209,14 +211,14 @@ export default function GodisPage() {
       <div className="flex flex-col items-center px-4 pt-6 max-w-sm mx-auto gap-6">
         {/* Score row */}
         <div className="flex gap-3">
-          <div className="bg-white/80 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-pink-200">
-            <div className="text-2xl font-black text-pink-500">{score}</div>
-            <div className="text-xs font-bold text-gray-400">poäng</div>
+          <div className="bg-white/10 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-pink-400/30">
+            <div className="text-2xl font-black text-pink-300">{score}</div>
+            <div className="text-xs font-bold text-white/50">poäng</div>
           </div>
           {streak >= 3 && (
-            <div className="bg-amber-50 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-amber-200 animate-pulse">
-              <div className="text-2xl font-black text-amber-500">{streak} 🔥</div>
-              <div className="text-xs font-bold text-gray-400">i rad</div>
+            <div className="bg-amber-900/40 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-amber-400/40 animate-pulse">
+              <div className="text-2xl font-black text-amber-400">{streak} 🔥</div>
+              <div className="text-xs font-bold text-white/50">i rad</div>
             </div>
           )}
         </div>
@@ -319,6 +321,6 @@ export default function GodisPage() {
           <div className="text-xs font-bold opacity-70 mt-0.5">{numWord(dragNum.value)}</div>
         </div>
       )}
-    </div>
+    </GameBackground>
   );
 }

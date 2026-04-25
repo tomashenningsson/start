@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
 import { PageHeader } from '@/components/PageHeader';
+import { GameBackground } from '@/components/GameBackground';
+import { GAME_THEMES } from '@/lib/gameThemes';
 
 type Level = 1 | 2 | 3;
 type GamePhase = 'idle' | 'playing' | 'feedback' | 'gameover';
@@ -239,18 +241,18 @@ export default function StorstPage() {
   // ── Idle screen ─────────────────────────────────────────────────────────────
   if (phase === 'idle') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50">
+      <GameBackground theme={GAME_THEMES.storst}>
         <PageHeader title="Störst!" emoji="⚡" />
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center gap-6">
           <div className="text-8xl select-none">⚡</div>
           <div>
-            <h2 className="text-4xl font-black text-gray-800 mb-2">Vem är störst?</h2>
-            <p className="text-lg text-gray-500 font-semibold max-w-xs">
+            <h2 className="text-4xl font-black text-white mb-2">Vem är störst?</h2>
+            <p className="text-lg text-white/70 font-semibold max-w-xs">
               Tryck snabbt på uttrycket med det STÖRST värdet — innan tiden tar slut!
             </p>
           </div>
           {progress.mathHighScore > 0 && (
-            <p className="text-xl font-black text-indigo-600">
+            <p className="text-xl font-black text-indigo-300">
               🏆 Rekord: {progress.mathHighScore} poäng
             </p>
           )}
@@ -264,7 +266,7 @@ export default function StorstPage() {
                 className={`w-full py-3.5 rounded-2xl font-black text-sm transition-all ${
                   level === l
                     ? 'bg-indigo-500 text-white shadow-md scale-105'
-                    : 'bg-white/80 text-gray-600 ring-1 ring-gray-200 hover:bg-white'
+                    : 'bg-white/10 text-white/70 ring-1 ring-white/20 hover:bg-white/20'
                 }`}
               >
                 {l === 1 && '⭐ Nivå 1 — Plus'}
@@ -281,7 +283,7 @@ export default function StorstPage() {
             Starta! ⚡
           </button>
         </div>
-      </div>
+      </GameBackground>
     );
   }
 
@@ -289,14 +291,14 @@ export default function StorstPage() {
   if (phase === 'gameover') {
     const isRecord = score > 0 && score >= progress.mathHighScore;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50">
+      <GameBackground theme={GAME_THEMES.storst}>
         <PageHeader title="Störst!" emoji="⚡" />
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center gap-6">
           <div className="text-8xl select-none">🎯</div>
-          <h2 className="text-4xl font-black text-gray-800">Game Over!</h2>
+          <h2 className="text-4xl font-black text-white">Game Over!</h2>
           <div>
-            <div className="text-6xl font-black text-indigo-600">{score}</div>
-            <div className="text-xl font-bold text-gray-500">poäng</div>
+            <div className="text-6xl font-black text-indigo-300">{score}</div>
+            <div className="text-xl font-bold text-white/70">poäng</div>
           </div>
           {isRecord && (
             <div className="text-2xl font-black text-amber-500 animate-bounce">
@@ -312,13 +314,13 @@ export default function StorstPage() {
             </button>
             <button
               onClick={() => setPhase('idle')}
-              className="w-full py-3.5 rounded-2xl bg-white text-indigo-600 font-black text-base shadow ring-1 ring-indigo-200 hover:bg-indigo-50 active:scale-95 transition-all"
+              className="w-full py-3.5 rounded-2xl bg-white/10 text-indigo-300 font-black text-base shadow ring-1 ring-indigo-400/40 hover:bg-indigo-900/50 active:scale-95 transition-all"
             >
               Byt nivå
             </button>
           </div>
         </div>
-      </div>
+      </GameBackground>
     );
   }
 
@@ -330,13 +332,18 @@ export default function StorstPage() {
       : 'Vilket uttryck är STÖRST?';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex flex-col">
+    <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: GAME_THEMES.storst.gradient }}>
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute w-[420px] h-[420px] rounded-full blur-3xl opacity-30 animate-aurora-1" style={{ top: '-12%', right: '-8%', background: 'radial-gradient(circle, #6366f1, transparent 70%)' }} />
+        <div className="absolute w-[340px] h-[340px] rounded-full blur-3xl opacity-20 animate-aurora-2" style={{ bottom: '5%', left: '-8%', background: 'radial-gradient(circle, #06b6d4, transparent 70%)' }} />
+        <div className="absolute w-[260px] h-[260px] rounded-full blur-3xl opacity-20 animate-aurora-3" style={{ top: '40%', right: '15%', background: 'radial-gradient(circle, #8b5cf6, transparent 70%)' }} />
+      </div>
       <PageHeader
         title="Störst!"
         emoji="⚡"
         rightContent={
           <div className="flex items-center gap-2">
-            <span className="text-sm font-black text-indigo-600 bg-indigo-50 rounded-full px-3 py-1 ring-1 ring-indigo-200">
+            <span className="text-sm font-black text-indigo-300 bg-indigo-900/50 rounded-full px-3 py-1 ring-1 ring-indigo-400/40">
               {score} p
             </span>
             <div className="flex gap-0.5">
@@ -355,7 +362,7 @@ export default function StorstPage() {
 
       <div className="flex flex-col flex-1 px-4 pt-4 pb-6 max-w-sm mx-auto w-full gap-4">
         {/* Timer bar */}
-        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full ${timerColor}`}
             style={{
@@ -370,7 +377,7 @@ export default function StorstPage() {
           phase === 'feedback'
             ? feedback?.chosen === feedback?.correct ? 'text-green-600' :
               feedback?.chosen === null ? 'text-amber-500' : 'text-red-500'
-            : 'text-gray-500'
+            : 'text-white/60'
         }`}>
           {statusMsg}
         </p>
@@ -385,7 +392,7 @@ export default function StorstPage() {
             onAnswer={handleAnswer}
           />
           <div className="flex items-center justify-center px-1">
-            <span className="text-base font-black text-gray-300 select-none">VS</span>
+            <span className="text-base font-black text-white/40 select-none">VS</span>
           </div>
           <GameCard
             side="right"
@@ -397,7 +404,7 @@ export default function StorstPage() {
         </div>
 
         {/* Level badge */}
-        <p className="text-center text-xs font-bold text-gray-400">
+        <p className="text-center text-xs font-bold text-white/50">
           {'⭐'.repeat(level)} Nivå {level}
         </p>
       </div>
