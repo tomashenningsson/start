@@ -36,6 +36,15 @@
 
   a {
     -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  a:focus,
+  a:focus-visible,
+  a:active {
+    outline: none;
   }
 
   body {
