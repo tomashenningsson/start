@@ -78,6 +78,16 @@ const activities = [
     bg: 'bg-indigo-50',
     ring: 'ring-indigo-200',
   },
+  {
+    href: '/zombie-math',
+    emoji: '🧟',
+    title: 'Zombie Matte',
+    subtitle: 'Stoppa zombien!',
+    from: 'from-green-700',
+    to: 'to-red-700',
+    bg: 'bg-gray-900',
+    ring: 'ring-red-900',
+  },
 ];
 
 export default function Home() {
