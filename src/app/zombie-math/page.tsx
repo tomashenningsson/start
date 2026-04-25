@@ -531,7 +531,7 @@ export default function ZombieGame() {
           display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 8, width: '100%', maxWidth: 340,
         }}>
-          {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(d => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => (
             <button key={d} onClick={() => handleDigit(String(d))} style={{
               height: 44, fontSize: 22, fontWeight: 800,
               background: 'linear-gradient(135deg, #4c1d95, #6d28d9)',
