@@ -6,6 +6,8 @@ import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
 import { Celebration } from '@/components/Celebration';
 import { PageHeader } from '@/components/PageHeader';
+import { GameBackground } from '@/components/GameBackground';
+import { GAME_THEMES } from '@/lib/gameThemes';
 
 const COUNTING_EMOJIS = ['🍎', '⭐', '🐶', '🦋', '🎈', '🌸', '🏀', '🐱', '🐸', '🍪'];
 
@@ -84,7 +86,7 @@ export default function SiffrorPage() {
     current.value > 15 ? 'gap-1' : current.value > 10 ? 'gap-1.5' : 'gap-2';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-cyan-50 pb-12">
+    <GameBackground theme={GAME_THEMES.siffror} className="pb-12">
       <PageHeader
         title="Räknaren"
         emoji="🔢"
@@ -98,14 +100,14 @@ export default function SiffrorPage() {
       <div className="flex flex-col items-center px-6 pt-4 gap-5 max-w-sm mx-auto">
         {/* Score row */}
         <div className="flex gap-3">
-          <div className="bg-white/80 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-sky-200">
-            <div className="text-2xl font-black text-sky-500">{score}</div>
-            <div className="text-xs font-bold text-gray-400">poäng</div>
+          <div className="bg-white/10 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-sky-400/30">
+            <div className="text-2xl font-black text-sky-300">{score}</div>
+            <div className="text-xs font-bold text-white/50">poäng</div>
           </div>
           {streak >= 3 && (
-            <div className="bg-amber-50 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-amber-200 animate-pulse">
-              <div className="text-2xl font-black text-amber-500">{streak} 🔥</div>
-              <div className="text-xs font-bold text-gray-400">i rad</div>
+            <div className="bg-amber-900/40 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-amber-400/40 animate-pulse">
+              <div className="text-2xl font-black text-amber-400">{streak} 🔥</div>
+              <div className="text-xs font-bold text-white/50">i rad</div>
             </div>
           )}
         </div>
@@ -113,7 +115,7 @@ export default function SiffrorPage() {
         {/* Counting display — tappable for audio */}
         <button
           onClick={() => speak(current.word)}
-          className="w-full bg-white/80 rounded-3xl p-5 shadow-md ring-2 ring-sky-200 min-h-[150px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
+          className="w-full bg-white/10 rounded-3xl p-5 shadow-md ring-2 ring-sky-400/40 min-h-[150px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
         >
           {current.value === 0 ? (
             <div className="flex flex-col items-center gap-1">
@@ -133,7 +135,7 @@ export default function SiffrorPage() {
         </button>
 
         {/* Question */}
-        <p className="text-xl font-black text-gray-600 text-center">
+        <p className="text-xl font-black text-white/90 text-center">
           Hur många {emoji} ser du?
         </p>
 
@@ -152,7 +154,7 @@ export default function SiffrorPage() {
                     ? 'bg-green-400 text-white scale-105 shadow-lg shadow-green-200'
                     : isWrong
                     ? 'bg-red-400 text-white animate-shake'
-                    : 'bg-white text-gray-700 ring-2 ring-sky-200 hover:ring-sky-400 hover:shadow-lg'
+                    : 'bg-white/15 text-white ring-2 ring-sky-400/40 hover:ring-sky-400 hover:bg-white/25 hover:shadow-lg'
                 }`}
               >
                 <div className="text-3xl">{num}</div>
@@ -174,6 +176,6 @@ export default function SiffrorPage() {
       </div>
 
       <Celebration active={celebrating} onComplete={() => {}} />
-    </div>
+    </GameBackground>
   );
 }

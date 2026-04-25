@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useProgress } from '@/hooks/useProgress';
 import { PageHeader } from '@/components/PageHeader';
+import { GameBackground } from '@/components/GameBackground';
+import { GAME_THEMES } from '@/lib/gameThemes';
 
 interface Equation {
   id: number;
@@ -345,64 +347,69 @@ export default function MattePage() {
 
   if (gameState === 'idle') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-50">
+      <GameBackground theme={GAME_THEMES.matte}>
         <PageHeader title="Lavamonstret" emoji="🌋" />
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
           <div className="text-8xl mb-6 select-none">🌋</div>
-          <h2 className="text-4xl font-black text-gray-800 mb-3">Rädda talen!</h2>
-          <p className="text-lg text-gray-500 mb-8 max-w-sm font-semibold">
+          <h2 className="text-4xl font-black text-white mb-3">Rädda talen!</h2>
+          <p className="text-lg text-white/70 mb-8 max-w-sm font-semibold">
             Tal faller mot lavan — räkna rätt och rädda dem innan monstret äter dem!
           </p>
           {progress.mathHighScore > 0 && (
-            <p className="text-xl font-black text-violet-600 mb-6">🏆 Rekord: {progress.mathHighScore} poäng</p>
+            <p className="text-xl font-black text-violet-300 mb-6">🏆 Rekord: {progress.mathHighScore} poäng</p>
           )}
           <div className="flex flex-col gap-3 items-center w-full max-w-xs">
             <button onClick={startGame}
               className="w-full px-12 py-5 rounded-3xl bg-gradient-to-r from-violet-500 to-purple-500 text-white font-black text-2xl shadow-lg hover:shadow-xl active:scale-95 transition-all"
             >Starta! 🚀</button>
             <button onClick={() => setShowTable(true)}
-              className="w-full px-8 py-3.5 rounded-3xl bg-white text-violet-600 font-black text-lg shadow ring-1 ring-violet-200 hover:bg-violet-50 active:scale-95 transition-all"
+              className="w-full px-8 py-3.5 rounded-3xl bg-white/10 text-violet-300 font-black text-lg shadow ring-1 ring-violet-400/40 hover:bg-violet-900/50 active:scale-95 transition-all"
             >📊 Gångertabell</button>
           </div>
         </div>
         {showTable && <TimesTableModal onClose={() => setShowTable(false)} />}
-      </div>
+      </GameBackground>
     );
   }
 
   if (gameState === 'gameover') {
     const isRecord = score >= progress.mathHighScore && score > 0;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-50">
+      <GameBackground theme={GAME_THEMES.matte}>
         <PageHeader title="Lavamonstret" emoji="🌋" />
         <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
           <div className="text-8xl mb-6 select-none">🎯</div>
-          <h2 className="text-4xl font-black text-gray-800 mb-3">Game Over!</h2>
-          <div className="text-6xl font-black text-violet-600 mb-2">{score}</div>
-          <div className="text-xl font-bold text-gray-500 mb-4">poäng</div>
+          <h2 className="text-4xl font-black text-white mb-3">Game Over!</h2>
+          <div className="text-6xl font-black text-violet-300 mb-2">{score}</div>
+          <div className="text-xl font-bold text-white/70 mb-4">poäng</div>
           {isRecord && <div className="text-2xl font-black text-amber-500 mb-6 animate-bounce">🏆 Nytt rekord!</div>}
           <div className="flex flex-col gap-3 items-center w-full max-w-xs mt-4">
             <button onClick={startGame}
               className="w-full px-8 py-4 rounded-3xl bg-gradient-to-r from-violet-500 to-purple-500 text-white font-black text-xl shadow-lg hover:shadow-xl active:scale-95 transition-all"
             >Spela igen 🔄</button>
             <button onClick={() => setShowTable(true)}
-              className="w-full px-8 py-3 rounded-3xl bg-white text-violet-600 font-black text-base shadow ring-1 ring-violet-200 hover:bg-violet-50 active:scale-95 transition-all"
+              className="w-full px-8 py-3 rounded-3xl bg-white/10 text-violet-300 font-black text-base shadow ring-1 ring-violet-400/40 hover:bg-violet-900/50 active:scale-95 transition-all"
             >📊 Gångertabell</button>
           </div>
         </div>
         {showTable && <TimesTableModal onClose={() => setShowTable(false)} />}
-      </div>
+      </GameBackground>
     );
   }
 
   // Playing state
   return (
-    <div className="flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden select-none" style={{ height: '100dvh' }}>
+    <div className="flex flex-col overflow-hidden select-none relative" style={{ height: '100dvh', background: GAME_THEMES.matte.gradient }}>
+      {/* Aurora orbs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute w-[420px] h-[420px] rounded-full blur-3xl opacity-30 animate-aurora-1" style={{ top: '-15%', right: '-10%', background: 'radial-gradient(circle, #a855f7, transparent 70%)' }} />
+        <div className="absolute w-[320px] h-[320px] rounded-full blur-3xl opacity-20 animate-aurora-2" style={{ bottom: '5%', left: '-8%', background: 'radial-gradient(circle, #f43f5e, transparent 70%)' }} />
+      </div>
       {/* Score bar */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 pb-2 bg-white/80 backdrop-blur-sm border-b border-white/60 shadow-sm z-10" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}>
-        <div className="text-xl font-black text-violet-600">{score} p</div>
+      <div className="relative z-10 flex-shrink-0 flex items-center gap-3 px-4 pb-2 bg-black/30 backdrop-blur-md border-b border-white/10 shadow-sm" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}>
+        <div className="text-xl font-black text-violet-300">{score} p</div>
         <button onClick={() => setShowTable(true)}
-          className="text-xs font-black text-violet-400 hover:text-violet-600 bg-violet-50 rounded-full px-2.5 py-1 transition-colors"
+          className="text-xs font-black text-violet-300 hover:text-violet-100 bg-violet-900/50 rounded-full px-2.5 py-1 transition-colors"
         >📊</button>
         <div className="flex-1" />
         <div className="flex gap-1">

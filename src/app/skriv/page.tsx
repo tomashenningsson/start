@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { useProgress } from '@/hooks';
+import { GameBackground } from '@/components/GameBackground';
+import { GAME_THEMES } from '@/lib/gameThemes';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('');
 const NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -291,7 +293,7 @@ export default function SkrivPage() {
   const goPrev = () => goTo((idx - 1 + items.length) % items.length);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 pb-12 overscroll-none">
+    <GameBackground theme={GAME_THEMES.skriv} className="pb-12 overscroll-none">
       <PageHeader title="Spårskolan" emoji="🖊️" />
 
       {/* Mode tabs */}
@@ -301,7 +303,7 @@ export default function SkrivPage() {
             onClick={() => { setMode(m); setIdx(0); setProgress(0); }}
             className={`px-5 py-2.5 rounded-full font-black text-sm transition-all ${
               mode === m ? 'bg-orange-400 text-white shadow-md scale-105'
-                        : 'bg-white/80 text-gray-600 hover:bg-white ring-1 ring-gray-200'
+                        : 'bg-white/10 text-white/70 hover:bg-white/20 ring-1 ring-white/20'
             }`}
           >
             {m === 'letters' ? '🔤 Bokstäver' : '🔢 Siffror'}
@@ -312,33 +314,33 @@ export default function SkrivPage() {
       {/* Character navigation */}
       <div className="flex items-center justify-center gap-4 mb-3 px-4">
         <button onClick={goPrev}
-          className="text-2xl font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 transition-colors"
+          className="text-2xl font-black text-white/60 hover:text-white bg-white/15 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-white/20 transition-colors"
         >‹</button>
         <div className="text-center min-w-[60px]">
-          <div className="text-6xl font-black text-gray-800 select-none">{current}</div>
+          <div className="text-6xl font-black text-white select-none">{current}</div>
           {mode === 'letters' && (
-            <div className="text-base font-bold text-gray-400 mt-0.5">{current.toLowerCase()}</div>
+            <div className="text-base font-bold text-white/60 mt-0.5">{current.toLowerCase()}</div>
           )}
         </div>
         <button onClick={goNext}
-          className="text-2xl font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 transition-colors"
+          className="text-2xl font-black text-white/60 hover:text-white bg-white/15 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-white/20 transition-colors"
         >›</button>
       </div>
 
       {/* Progress bar */}
       <div className="flex items-center gap-3 px-8 mb-2 max-w-xs mx-auto">
-        <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden ring-1 ring-gray-200">
+        <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden ring-1 ring-white/20">
           <div
             className={`h-full rounded-full transition-all duration-200 ${isSuccess ? 'bg-green-400' : 'bg-violet-400'}`}
             style={{ width: `${progress}%` }}
           />
         </div>
-        <span className={`text-sm font-black w-8 text-right ${isSuccess ? 'text-green-500' : 'text-gray-400'}`}>
+        <span className={`text-sm font-black w-8 text-right ${isSuccess ? 'text-green-400' : 'text-white/60'}`}>
           {isSuccess ? '⭐' : `${progress}%`}
         </span>
       </div>
 
-      <p className="text-center text-xs font-bold text-gray-400 mb-3 px-4">
+      <p className="text-center text-xs font-bold text-white/50 mb-3 px-4">
         Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
         {'  ·  '}
         <span className="text-violet-400">Blått = rätt</span>
@@ -379,6 +381,6 @@ export default function SkrivPage() {
           );
         })}
       </div>
-    </div>
+    </GameBackground>
   );
 }

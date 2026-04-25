@@ -6,6 +6,8 @@ import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
 import { Celebration } from '@/components/Celebration';
 import { PageHeader } from '@/components/PageHeader';
+import { GameBackground } from '@/components/GameBackground';
+import { GAME_THEMES } from '@/lib/gameThemes';
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -69,7 +71,7 @@ export default function BokstaverPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-50 pb-12">
+    <GameBackground theme={GAME_THEMES.bokstaver} className="pb-12">
       <PageHeader
         title="Bokstavsjakt"
         emoji="🎯"
@@ -83,14 +85,14 @@ export default function BokstaverPage() {
       <div className="flex flex-col items-center px-6 pt-4 gap-4 max-w-sm mx-auto">
         {/* Score row */}
         <div className="flex gap-3">
-          <div className="bg-white/80 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-pink-200">
-            <div className="text-2xl font-black text-pink-500">{score}</div>
-            <div className="text-xs font-bold text-gray-400">poäng</div>
+          <div className="bg-white/10 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-rose-400/30">
+            <div className="text-2xl font-black text-pink-300">{score}</div>
+            <div className="text-xs font-bold text-white/50">poäng</div>
           </div>
           {streak >= 3 && (
-            <div className="bg-amber-50 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-amber-200 animate-pulse">
-              <div className="text-2xl font-black text-amber-500">{streak} 🔥</div>
-              <div className="text-xs font-bold text-gray-400">i rad</div>
+            <div className="bg-amber-900/40 rounded-2xl px-5 py-2 text-center shadow-sm ring-1 ring-amber-400/40 animate-pulse">
+              <div className="text-2xl font-black text-amber-400">{streak} 🔥</div>
+              <div className="text-xs font-bold text-white/50">i rad</div>
             </div>
           )}
         </div>
@@ -101,14 +103,14 @@ export default function BokstaverPage() {
           className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
         >
           <div className="text-[6rem] select-none leading-none">{current.emoji}</div>
-          <div className="text-2xl font-black text-gray-700 mt-1">{current.example}</div>
+          <div className="text-2xl font-black text-white mt-1">{current.example}</div>
           <div className="text-sm font-bold text-sky-400 mt-0.5">🔊 Tryck för att lyssna</div>
         </button>
 
         {/* Question */}
-        <p className="text-xl font-black text-gray-600 text-center">
+        <p className="text-xl font-black text-white/90 text-center">
           Vilken bokstav börjar{' '}
-          <span className="text-pink-500">{current.example}</span> med?
+          <span className="text-pink-300">{current.example}</span> med?
         </p>
 
         {/* 4 choice buttons */}
@@ -125,7 +127,7 @@ export default function BokstaverPage() {
                     ? 'bg-green-400 text-white scale-105 shadow-lg shadow-green-200'
                     : isWrong
                     ? 'bg-red-400 text-white animate-shake'
-                    : 'bg-white text-gray-700 ring-2 ring-pink-200 hover:ring-pink-400 hover:shadow-lg'
+                    : 'bg-white/15 text-white ring-2 ring-rose-400/40 hover:ring-rose-400 hover:bg-white/25 hover:shadow-lg'
                 }`}
               >
                 <div className="text-3xl">{letter}</div>
@@ -149,6 +151,6 @@ export default function BokstaverPage() {
       </div>
 
       <Celebration active={celebrating} onComplete={() => {}} />
-    </div>
+    </GameBackground>
   );
 }
