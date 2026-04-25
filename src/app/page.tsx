@@ -58,6 +58,26 @@ const activities = [
     bg: 'bg-orange-50',
     ring: 'ring-orange-200',
   },
+  {
+    href: '/godis',
+    emoji: '🍬',
+    title: 'Godisspelet',
+    subtitle: 'Matcha siffror!',
+    from: 'from-pink-400',
+    to: 'to-purple-400',
+    bg: 'bg-pink-50',
+    ring: 'ring-pink-200',
+  },
+  {
+    href: '/storst',
+    emoji: '⚡',
+    title: 'Störst!',
+    subtitle: 'Vem är störst?',
+    from: 'from-indigo-400',
+    to: 'to-blue-400',
+    bg: 'bg-indigo-50',
+    ring: 'ring-indigo-200',
+  },
 ];
 
 export default function Home() {
