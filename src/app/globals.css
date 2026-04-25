@@ -41,12 +41,6 @@
     user-select: none;
   }
 
-  a:focus,
-  a:focus-visible,
-  a:active {
-    outline: none;
-  }
-
   body {
     @apply bg-background text-foreground antialiased;
   }
@@ -59,6 +53,12 @@
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
+
+  a:focus,
+  a:focus-visible,
+  a:active {
+    outline: none;
+  }
 }
 
 /* Celebration pop animation */
