@@ -399,7 +399,7 @@ export default function MattePage() {
   return (
     <div className="flex flex-col bg-gradient-to-br from-violet-50 to-purple-50 overflow-hidden select-none" style={{ height: '100dvh' }}>
       {/* Score bar */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-sm border-b border-white/60 shadow-sm z-10 safe-top">
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 pb-2 bg-white/80 backdrop-blur-sm border-b border-white/60 shadow-sm z-10" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}>
         <div className="text-xl font-black text-violet-600">{score} p</div>
         <button onClick={() => setShowTable(true)}
           className="text-xs font-black text-violet-400 hover:text-violet-600 bg-violet-50 rounded-full px-2.5 py-1 transition-colors"
