@@ -186,7 +186,9 @@ export default function Home() {
             key={a.href}
             href={a.href}
             draggable={false}
+            tabIndex={-1}
             onContextMenu={(e) => e.preventDefault()}
+            onFocus={(e) => e.currentTarget.blur()}
             className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] outline-none focus:outline-none select-none ${
               idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
             }`}
