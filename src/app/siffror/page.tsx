@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { numbers } from '@/data/numbers';
 import { useSpeech } from '@/hooks/useSpeech';
 import { useProgress } from '@/hooks/useProgress';
@@ -8,46 +8,69 @@ import { Celebration } from '@/components/Celebration';
 import { PageHeader } from '@/components/PageHeader';
 
 const COUNTING_EMOJIS = ['🍎', '⭐', '🐶', '🦋', '🎈', '🌸', '🏀', '🐱', '🐸', '🍪'];
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+const MAX_VALUE = numbers[numbers.length - 1].value; // 20
 
 function buildChoices(correct: number): number[] {
   const candidates = new Set<number>([correct]);
   for (let offset = 1; candidates.size < 4; offset++) {
     if (correct - offset >= 0) candidates.add(correct - offset);
-    if (correct + offset <= 20) candidates.add(correct + offset);
-    if (offset > 20) break;
+    if (correct + offset <= MAX_VALUE) candidates.add(correct + offset);
+    if (offset > MAX_VALUE) break;
   }
-  return shuffle(Array.from(candidates).slice(0, 4));
+  // Shuffle
+  const arr = Array.from(candidates).slice(0, 4);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 function randomEmoji(): string {
   return COUNTING_EMOJIS[Math.floor(Math.random() * COUNTING_EMOJIS.length)];
 }
 
-function initState() {
-  const queue = shuffle([...numbers]);
-  return { queue, idx: 0, choices: buildChoices(queue[0].value), emoji: randomEmoji() };
+// Returns the first unlearned value in 0..MAX_VALUE, or 0 if all learned.
+function firstUnlearned(learnedNumbers: number[]): number {
+  const learned = new Set(learnedNumbers);
+  for (let i = 0; i <= MAX_VALUE; i++) {
+    if (!learned.has(i)) return i;
+  }
+  return 0;
 }
 
 export default function SiffrorPage() {
   const { speak } = useSpeech();
   const { progress, learnNumber } = useProgress();
 
-  const [{ queue, idx, choices, emoji }, setState] = useState(initState);
+  const [currentValue, setCurrentValue] = useState(0);
+  const [choices, setChoices] = useState(() => buildChoices(0));
+  const [emoji, setEmoji] = useState(randomEmoji);
   const [wrong, setWrong] = useState<number | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
 
-  const current = queue[idx];
+  // Jump to first unlearned number once progress has loaded (only on mount).
+  const initialisedRef = useRef(false);
+  useEffect(() => {
+    if (initialisedRef.current) return;
+    // progress.learnedNumbers is non-empty once real data is present
+    if (progress.learnedNumbers.length === 0) return;
+    initialisedRef.current = true;
+    const start = firstUnlearned(progress.learnedNumbers);
+    setCurrentValue(start);
+    setChoices(buildChoices(start));
+  }, [progress.learnedNumbers]);
+
+  const current = numbers.find(n => n.value === currentValue) ?? numbers[0];
+
+  const goToNext = (fromValue: number) => {
+    const next = (fromValue + 1) % (MAX_VALUE + 1);
+    setCurrentValue(next);
+    setChoices(buildChoices(next));
+    setEmoji(randomEmoji());
+  };
 
   const handleAnswer = (num: number) => {
     if (celebrating || wrong !== null) return;
@@ -67,21 +90,13 @@ export default function SiffrorPage() {
 
   const nextQuestion = () => {
     setCelebrating(false);
-    setState(prev => {
-      const nextIdx = prev.idx + 1;
-      const newEmoji = randomEmoji();
-      if (nextIdx >= prev.queue.length) {
-        const newQueue = shuffle([...numbers]);
-        return { queue: newQueue, idx: 0, choices: buildChoices(newQueue[0].value), emoji: newEmoji };
-      }
-      return { ...prev, idx: nextIdx, choices: buildChoices(prev.queue[nextIdx].value), emoji: newEmoji };
-    });
+    goToNext(currentValue);
   };
 
   const emojiTextSize =
-    current.value > 15 ? 'text-2xl' : current.value > 10 ? 'text-3xl' : 'text-4xl';
+    currentValue > 15 ? 'text-2xl' : currentValue > 10 ? 'text-3xl' : 'text-4xl';
   const emojiGap =
-    current.value > 15 ? 'gap-1' : current.value > 10 ? 'gap-1.5' : 'gap-2';
+    currentValue > 15 ? 'gap-1' : currentValue > 10 ? 'gap-1.5' : 'gap-2';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 to-cyan-50 pb-12">
@@ -115,14 +130,14 @@ export default function SiffrorPage() {
           onClick={() => speak(current.word)}
           className="w-full bg-white/80 rounded-3xl p-5 shadow-md ring-2 ring-sky-200 min-h-[150px] flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform"
         >
-          {current.value === 0 ? (
+          {currentValue === 0 ? (
             <div className="flex flex-col items-center gap-1">
               <div className="text-5xl text-gray-300 select-none">∅</div>
               <div className="text-lg font-black text-gray-400">ingenting</div>
             </div>
           ) : (
             <div className={`flex flex-wrap justify-center ${emojiGap}`}>
-              {Array.from({ length: current.value }, (_, i) => (
+              {Array.from({ length: currentValue }, (_, i) => (
                 <span key={i} className={`${emojiTextSize} select-none leading-tight`}>
                   {emoji}
                 </span>
