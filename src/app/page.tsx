@@ -97,7 +97,42 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex flex-col items-center px-4 pb-8">
+    <main
+      className="min-h-screen flex flex-col items-center px-4 pb-8 relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(160deg, #1e1b4b 0%, #3b0764 16%, #701a75 30%, #831843 46%, #7c2d12 58%, #14532d 73%, #0c4a6e 87%, #1e1b4b 100%)',
+      }}
+    >
+      {/* Aurora glow orbs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute w-[500px] h-[500px] rounded-full blur-3xl opacity-30 animate-aurora-1"
+          style={{ top: '-15%', right: '-10%', background: 'radial-gradient(circle, #f472b6, transparent 70%)' }} />
+        <div className="absolute w-[420px] h-[420px] rounded-full blur-3xl opacity-25 animate-aurora-2"
+          style={{ bottom: '5%', left: '-12%', background: 'radial-gradient(circle, #22d3ee, transparent 70%)' }} />
+        <div className="absolute w-[360px] h-[360px] rounded-full blur-3xl opacity-20 animate-aurora-3"
+          style={{ top: '38%', right: '15%', background: 'radial-gradient(circle, #4ade80, transparent 70%)' }} />
+        <div className="absolute w-[300px] h-[300px] rounded-full blur-3xl opacity-25 animate-aurora-1"
+          style={{ top: '18%', left: '10%', background: 'radial-gradient(circle, #fb923c, transparent 70%)' }} />
+        <div className="absolute w-[380px] h-[380px] rounded-full blur-3xl opacity-20 animate-aurora-2"
+          style={{ bottom: '28%', right: '3%', background: 'radial-gradient(circle, #a78bfa, transparent 70%)' }} />
+      </div>
+
+      {/* Floating game emojis */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
+        <span className="absolute text-3xl animate-float-1 opacity-50" style={{ top: '7%', left: '4%' }}>🎯</span>
+        <span className="absolute text-2xl animate-float-2 opacity-45" style={{ top: '14%', right: '5%' }}>🔢</span>
+        <span className="absolute text-2xl animate-float-3 opacity-40" style={{ top: '33%', left: '3%' }}>🧩</span>
+        <span className="absolute text-3xl animate-float-1 opacity-45" style={{ top: '52%', right: '4%' }}>🌋</span>
+        <span className="absolute text-2xl animate-float-2 opacity-40" style={{ bottom: '32%', left: '6%' }}>🍬</span>
+        <span className="absolute text-2xl animate-float-3 opacity-50" style={{ bottom: '22%', right: '7%' }}>⚡</span>
+        <span className="absolute text-2xl animate-float-1 opacity-40" style={{ bottom: '12%', left: '9%' }}>🧟</span>
+        <span className="absolute text-xl animate-float-2 opacity-35" style={{ top: '68%', right: '12%' }}>🖊️</span>
+        <span className="absolute text-lg animate-float-3 opacity-40" style={{ top: '26%', right: '18%' }}>⭐</span>
+        <span className="absolute text-base animate-float-1 opacity-35" style={{ top: '44%', left: '14%' }}>✨</span>
+        <span className="absolute text-lg animate-float-2 opacity-30" style={{ top: '80%', left: '25%' }}>🌟</span>
+        <span className="absolute text-xl animate-float-3 opacity-35" style={{ top: '5%', left: '40%' }}>🎮</span>
+      </div>
+
       {/* Top bar: sound toggle left, auth right — respects iPhone safe area */}
       <div
         className="w-full flex justify-between items-center py-3"
@@ -105,7 +140,7 @@ export default function Home() {
       >
         <button
           onClick={toggleMute}
-          className="text-xl bg-white/80 rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-gray-200 shadow-sm hover:bg-white transition-colors"
+          className="text-xl bg-white/15 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center ring-1 ring-white/30 shadow-sm hover:bg-white/25 transition-colors"
           title={muted ? 'Sätt på ljud' : 'Stäng av ljud'}
         >
           {muted ? '🔇' : '🔊'}
@@ -113,12 +148,12 @@ export default function Home() {
         <div>
           {user ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500 hidden sm:inline truncate max-w-[120px]">
+              <span className="text-xs font-bold text-white/60 hidden sm:inline truncate max-w-[120px]">
                 {user.email}
               </span>
               <button
                 onClick={signOut}
-                className="text-xs font-black text-gray-400 hover:text-gray-600 bg-white/80 rounded-full px-3 py-1.5 ring-1 ring-gray-200 transition-colors"
+                className="text-xs font-black text-white/70 hover:text-white bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5 ring-1 ring-white/30 transition-colors"
               >
                 Logga ut
               </button>
@@ -126,7 +161,7 @@ export default function Home() {
           ) : configured ? (
             <button
               onClick={() => setAuthOpen(true)}
-              className="text-sm font-black text-gray-500 bg-white/80 rounded-full px-4 py-1.5 ring-1 ring-gray-200 hover:bg-white transition-colors shadow-sm"
+              className="text-sm font-black text-white/80 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 ring-1 ring-white/30 hover:bg-white/25 transition-colors shadow-sm"
             >
               Logga in
             </button>
@@ -137,15 +172,15 @@ export default function Home() {
       {/* Hero */}
       <div className="text-center mb-10 mt-4">
         <div className="text-7xl mb-3 select-none">🌟</div>
-        <h1 className="text-5xl md:text-6xl font-black text-gray-800 mb-4 tracking-tight">
+        <h1 className="text-5xl md:text-6xl font-black text-white mb-4 tracking-tight drop-shadow-lg">
           Lär dig!
         </h1>
-        <div className="inline-flex items-center gap-2 bg-white/80 rounded-full px-5 py-2.5 shadow-md ring-1 ring-amber-200">
+        <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-md ring-1 ring-white/30">
           <span className="text-2xl">⭐</span>
-          <span className="text-xl font-black text-amber-600">{progress.totalStars}</span>
-          <span className="text-base font-bold text-gray-500">stjärnor</span>
+          <span className="text-xl font-black text-amber-300">{progress.totalStars}</span>
+          <span className="text-base font-bold text-white/70">stjärnor</span>
           {user && (
-            <span className="ml-1 text-xs font-bold text-green-500 bg-green-50 rounded-full px-2 py-0.5">
+            <span className="ml-1 text-xs font-bold text-green-300 bg-green-900/50 rounded-full px-2 py-0.5">
               ☁️ synkad
             </span>
           )}
@@ -185,7 +220,7 @@ export default function Home() {
       {!user && configured && (
         <button
           onClick={() => setAuthOpen(true)}
-          className="mt-6 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
+          className="mt-6 text-sm font-bold text-white/50 hover:text-white/80 transition-colors underline underline-offset-2"
         >
           Spara din progress — logga in eller skapa konto
         </button>
@@ -199,9 +234,9 @@ export default function Home() {
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="bg-white/80 rounded-2xl p-3 text-center shadow-sm ring-1 ring-gray-100">
+    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 text-center shadow-sm ring-1 ring-white/20">
       <div className={`text-2xl font-black ${color}`}>{value}</div>
-      <div className="text-xs font-bold text-gray-400 mt-0.5">{label}</div>
+      <div className="text-xs font-bold text-white/60 mt-0.5">{label}</div>
     </div>
   );
 }
