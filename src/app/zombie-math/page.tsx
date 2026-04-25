@@ -386,7 +386,7 @@ export default function ZombieGame() {
         )}
         {/* HUD */}
         <div style={{
-          position: 'absolute', top: 14, left: 0, right: 0,
+          position: 'absolute', top: 'calc(env(safe-area-inset-top) + 14px)', left: 0, right: 0,
           display: 'flex', justifyContent: 'space-between', padding: '0 18px', zIndex: 10,
         }}>
           <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 20, textShadow: '0 0 10px rgba(74,222,128,0.5)' }}>

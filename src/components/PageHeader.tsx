@@ -13,7 +13,7 @@ interface Props {
 
 export function PageHeader({ title, emoji, backHref = '/', rightContent }: Props) {
   return (
-    <header className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 bg-white/90 backdrop-blur-sm border-b border-white/60 shadow-sm">
+    <header className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 bg-white/90 backdrop-blur-sm border-b border-white/60 shadow-sm safe-top">
       <Link
         href={backHref}
         className="flex items-center justify-center w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 active:scale-90 transition-all"
