@@ -37,13 +37,8 @@ function unique<T>(arr: T[]): T[] {
   return Array.from(new Set(arr));
 }
 
-function calcTotalStars(p: Omit<Progress, 'totalStars'>): number {
-  return (
-    p.learnedLetters.length +
-    p.learnedNumbers.length +
-    p.completedWords.length * 3 +
-    Math.floor(p.mathHighScore / 5)
-  );
+function contentStars(p: Pick<Progress, 'learnedLetters' | 'learnedNumbers' | 'completedWords'>): number {
+  return p.learnedLetters.length + p.learnedNumbers.length + p.completedWords.length * 3;
 }
 
 function mergeProgress(a: Progress, b: Progress): Progress {
@@ -51,12 +46,16 @@ function mergeProgress(a: Progress, b: Progress): Progress {
   const learnedNumbers = unique([...a.learnedNumbers, ...b.learnedNumbers]);
   const completedWords = unique([...a.completedWords, ...b.completedWords]);
   const mathHighScore = Math.max(a.mathHighScore, b.mathHighScore);
+  // Math stars accumulate per session and can't be derived from highScore alone.
+  // Deduce them as (totalStars - contentStars) for each side and take the max.
+  const aMathStars = Math.max(0, a.totalStars - contentStars(a));
+  const bMathStars = Math.max(0, b.totalStars - contentStars(b));
   return {
     learnedLetters,
     learnedNumbers,
     completedWords,
     mathHighScore,
-    totalStars: calcTotalStars({ learnedLetters, learnedNumbers, completedWords, mathHighScore }),
+    totalStars: contentStars({ learnedLetters, learnedNumbers, completedWords }) + Math.max(aMathStars, bMathStars),
   };
 }
 
@@ -178,9 +177,11 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   const updateMathScore = useCallback((score: number) => {
     setProgress(prev => {
-      if (score <= prev.mathHighScore) return prev;
-      const bonus = Math.max(0, Math.floor(score / 5) - Math.floor(prev.mathHighScore / 5));
-      const next = { ...prev, mathHighScore: score, totalStars: prev.totalStars + bonus };
+      const newHighScore = Math.max(prev.mathHighScore, score);
+      // Award 1 star for every 5th correct answer in this session, regardless of previous high score
+      const bonus = score > 0 && score % 5 === 0 ? 1 : 0;
+      if (bonus === 0 && newHighScore === prev.mathHighScore) return prev;
+      const next = { ...prev, mathHighScore: newHighScore, totalStars: prev.totalStars + bonus };
       writeLocal(next); pushToSupabase(next);
       return next;
     });
