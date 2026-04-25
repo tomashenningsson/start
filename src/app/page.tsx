@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useProgress } from '@/hooks/useProgress';
 import { useKidsAuth } from '@/contexts/KidsAuthContext';
 import { useSound } from '@/contexts/SoundContext';
@@ -83,7 +83,6 @@ const activities = [
 ];
 
 export default function Home() {
-  const router = useRouter();
   const { progress } = useProgress();
   const { user, configured, signOut } = useKidsAuth();
   const { muted, toggleMute } = useSound();
@@ -183,15 +182,21 @@ export default function Home() {
       {/* Activity cards */}
       <div className="grid grid-cols-2 gap-4 w-full max-w-md md:max-w-2xl">
         {activities.map((a, idx) => (
-          <div
+          <Link
             key={a.href}
-            onClick={() => router.push(a.href)}
-            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] cursor-pointer select-none ${
+            href={a.href}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] outline-none focus:outline-none select-none ${
               idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
             }`}
             style={{
               boxShadow: `0 8px 32px -4px ${a.shadow}, 0 0 0 1px rgba(255,255,255,0.18), 0 1px 0 rgba(255,255,255,0.25) inset`,
+              outline: 'none',
               WebkitTapHighlightColor: 'transparent',
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
             }}
           >
             {/* Blurred glass base */}
@@ -251,7 +256,7 @@ export default function Home() {
             <div className="relative z-10 text-sm md:text-base font-semibold text-white/75 mt-1">
               {a.subtitle}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
