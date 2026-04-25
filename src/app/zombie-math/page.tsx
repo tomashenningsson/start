@@ -146,7 +146,7 @@ function MenuScreen({ onStart }: { onStart: (mode: 'easy' | 'normal') => void })
   );
 }
 
-function GameOverScreen({ score, level, onRestart }: { score: number; level: number; onRestart: () => void }) {
+function GameOverScreen({ score, level, mode, onRestart }: { score: number; level: number; mode: 'easy' | 'normal'; onRestart: (m: 'easy' | 'normal') => void }) {
   return (
     <div style={{
       width: '100vw', height: '100dvh', overflow: 'hidden',
@@ -165,15 +165,27 @@ function GameOverScreen({ score, level, onRestart }: { score: number; level: num
         <div style={{ fontSize: 42, fontWeight: 800, color: '#fbbf24' }}>⭐ {score}</div>
         <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 5 }}>Nådde nivå {level}</div>
       </div>
-      <button onClick={onRestart} style={{
-        background: 'linear-gradient(135deg, #dc2626, #991b1b)',
-        border: 'none', borderRadius: 18, color: '#fff',
-        fontWeight: 800, fontSize: 20, padding: '14px 46px',
-        cursor: 'pointer', letterSpacing: 2,
-        boxShadow: '0 6px 28px rgba(220,38,38,0.5)',
-      }}>
-        FÖRSÖK IGEN
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+        <button onClick={() => onRestart(mode)} style={{
+          background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+          border: 'none', borderRadius: 18, color: '#fff',
+          fontWeight: 800, fontSize: 20, padding: '14px 46px',
+          cursor: 'pointer', letterSpacing: 2,
+          boxShadow: '0 6px 28px rgba(220,38,38,0.5)',
+        }}>
+          FÖRSÖK IGEN {mode === 'easy' ? '(LÄTT)' : ''}
+        </button>
+        {mode === 'easy' && (
+          <button onClick={() => onRestart('normal')} style={{
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, color: 'rgba(255,255,255,0.6)',
+            fontWeight: 700, fontSize: 14, padding: '10px 28px',
+            cursor: 'pointer',
+          }}>
+            Byt till normal ⭐3/tal
+          </button>
+        )}
+      </div>
       <style>{`@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }`}</style>
     </div>
   );
@@ -329,7 +341,7 @@ export default function ZombieGame() {
   }, [gs]);
 
   if (gs === 'menu')     return <MenuScreen onStart={(m) => startGame(m)} />;
-  if (gs === 'gameover') return <GameOverScreen score={score} level={level} onRestart={startGame} />;
+  if (gs === 'gameover') return <GameOverScreen score={score} level={level} mode={mode} onRestart={(m) => startGame(m)} />;
 
   const progress = Math.max(0, (zPos - GAMEOVER_POS) / (ZOMBIE_INIT - GAMEOVER_POS));
   const danger   = 1 - progress;
@@ -407,7 +419,7 @@ export default function ZombieGame() {
             transition: 'filter 0.5s',
           }}>🧍</div>
           {/* Barriers */}
-          {barriers.map(b => <BarrierEl key={b.id} b={b} />)}
+          {barriers.map((b: Barrier) => <BarrierEl key={b.id} b={b} />)}
           {/* Zombie */}
           <div style={{
             position: 'absolute', bottom: 0, left: `${toLeft(zPos)}%`,
