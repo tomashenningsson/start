@@ -233,8 +233,8 @@ export default function ZombieGame() {
         g.barriers = [...g.barriers, nb].sort((a, b) => b.position - a.position);
         setBarriers([...g.barriers]);
       }
-      g.score += 10 * g.level;
-      g.level  = Math.floor(g.score / 80) + 1;
+      g.score += 3 * g.level;
+      g.level  = Math.floor(g.score / 24) + 1;
       setScore(g.score);
       setLevel(g.level);
       setFeedback('correct');
