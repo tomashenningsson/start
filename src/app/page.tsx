@@ -200,35 +200,35 @@ export default function Home() {
             }}
           >
             {/* Blurred glass base */}
-            <div className="absolute inset-0 backdrop-blur-md bg-black/20" />
+            <div className="absolute inset-0 backdrop-blur-md bg-black/20 pointer-events-none" />
 
             {/* Main rich gradient */}
             <div
-              className="absolute inset-0 opacity-70 group-hover:opacity-85 transition-opacity duration-300"
+              className="absolute inset-0 opacity-70 group-hover:opacity-85 transition-opacity duration-300 pointer-events-none"
               style={{ background: a.gradient }}
             />
 
             {/* Iridescent oil-colour overlay */}
             <div
-              className="absolute inset-0 opacity-35 group-hover:opacity-50 transition-opacity duration-300 mix-blend-screen"
+              className="absolute inset-0 opacity-35 group-hover:opacity-50 transition-opacity duration-300 mix-blend-screen pointer-events-none"
               style={{ background: a.iris }}
             />
 
             {/* Top gloss — the glass-bubble shine */}
             <div
-              className="absolute inset-x-0 top-0 h-3/5 rounded-t-3xl"
+              className="absolute inset-x-0 top-0 h-3/5 rounded-t-3xl pointer-events-none"
               style={{ background: 'linear-gradient(165deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.12) 38%, transparent 70%)' }}
             />
 
             {/* Bottom soft reflection */}
             <div
-              className="absolute inset-x-8 bottom-0 h-12"
+              className="absolute inset-x-8 bottom-0 h-12 pointer-events-none"
               style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.15) 0%, transparent 70%)' }}
             />
 
             {/* Inner edge lighting (glass rim) */}
             <div
-              className="absolute inset-0 rounded-3xl"
+              className="absolute inset-0 rounded-3xl pointer-events-none"
               style={{ boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.55), inset 0 -1px 1px rgba(255,255,255,0.12), inset 1px 0 1px rgba(255,255,255,0.18), inset -1px 0 1px rgba(255,255,255,0.18)' }}
             />
 
