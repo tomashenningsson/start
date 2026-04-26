@@ -191,7 +191,7 @@ export default function Home() {
               idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
             }`}
             style={{
-              boxShadow: `0 8px 32px -4px ${a.shadow}, 0 0 0 1px rgba(255,255,255,0.18), 0 1px 0 rgba(255,255,255,0.25) inset`,
+              boxShadow: `0 8px 32px -4px ${a.shadow}, 0 1px 0 rgba(255,255,255,0.25) inset`,
               outline: 'none',
               WebkitTapHighlightColor: 'transparent',
               WebkitTouchCallout: 'none',
