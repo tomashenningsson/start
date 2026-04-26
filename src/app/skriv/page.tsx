@@ -270,6 +270,7 @@ export default function SkrivPage() {
   const [mode, setMode] = useState<Mode>('letters');
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [showHelp, setShowHelp] = useState(false);
 
   const items = mode === 'letters' ? LETTERS : NUMBERS;
   const current = items[idx];
@@ -335,18 +336,20 @@ export default function SkrivPage() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        <span className={`text-sm font-black w-8 text-right ${isSuccess ? 'text-green-400' : 'text-white/60'}`}>
-          {isSuccess ? '⭐' : `${progress}%`}
+        <span className={`text-sm font-black w-6 text-right ${isSuccess ? 'text-green-400' : 'text-white/60'}`}>
+          {isSuccess ? '⭐' : ''}
         </span>
       </div>
 
-      <p className="text-center text-xs font-bold text-white/50 mb-3 px-4">
-        Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
-        {'  ·  '}
-        <span className="text-violet-400">Blått = rätt</span>
-        {'  ·  '}
-        <span className="text-red-400">Rött = utanför</span>
-      </p>
+      {showHelp && (
+        <p className="text-center text-xs font-bold text-white/50 mb-3 px-4">
+          Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
+          {'  ·  '}
+          <span className="text-violet-400">Blått = rätt</span>
+          {'  ·  '}
+          <span className="text-red-400">Rött = utanför</span>
+        </p>
+      )}
 
       {/* Canvas */}
       <div className="px-6 max-w-sm mx-auto w-full">
@@ -362,9 +365,11 @@ export default function SkrivPage() {
         </div>
       )}
 
-      {/* Navigation dots */}
+      {/* Navigation dots — show only nearby items */}
       <div className="flex justify-center gap-1.5 mt-4 px-4 flex-wrap max-w-sm mx-auto">
         {items.map((item, i) => {
+          const isNearby = Math.abs(i - idx) <= 2;
+          if (!isNearby) return null;
           const learned = mode === 'letters'
             ? appProgress.learnedLetters.includes(item)
             : appProgress.learnedNumbers.includes(parseInt(item, 10));
@@ -380,6 +385,16 @@ export default function SkrivPage() {
             </button>
           );
         })}
+      </div>
+
+      {/* Help button */}
+      <div className="text-center mt-4">
+        <button
+          onClick={() => setShowHelp(!showHelp)}
+          className="text-xs font-bold text-white/50 hover:text-white/70 transition-colors underline underline-offset-2"
+        >
+          {showHelp ? '✕ Dölj hjälp' : '? Visa hjälp'}
+        </button>
       </div>
     </GameBackground>
   );
