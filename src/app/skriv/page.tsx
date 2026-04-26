@@ -16,8 +16,8 @@ const STROKE_WIDTH = 24;
 const GRID = 14;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
-const MIN_COVERAGE = 82;   // % of character cells that must be covered
-const MIN_QUALITY = 0.52;  // fraction of stroke-center points that must be inside
+const MIN_COVERAGE = 70;   // % of character cells that must be covered
+const MIN_QUALITY = 0.40;  // fraction of stroke-center points that must be inside
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
@@ -329,16 +329,18 @@ export default function SkrivPage() {
       </div>
 
       {/* Progress bar */}
-      <div className="flex items-center gap-3 px-8 mb-2 max-w-xs mx-auto">
-        <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden ring-1 ring-white/20">
-          <div
-            className={`h-full rounded-full transition-all duration-200 ${isSuccess ? 'bg-green-400' : 'bg-violet-400'}`}
-            style={{ width: `${progress}%` }}
-          />
+      <div className="flex justify-center px-8 mb-4 w-full">
+        <div className="flex items-center gap-3 w-full max-w-xs">
+          <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden ring-1 ring-white/20">
+            <div
+              className={`h-full rounded-full transition-all duration-200 ${isSuccess ? 'bg-green-400' : 'bg-violet-400'}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className={`text-sm font-black w-6 text-right ${isSuccess ? 'text-green-400' : 'text-white/60'}`}>
+            {isSuccess ? '⭐' : ''}
+          </span>
         </div>
-        <span className={`text-sm font-black w-6 text-right ${isSuccess ? 'text-green-400' : 'text-white/60'}`}>
-          {isSuccess ? '⭐' : ''}
-        </span>
       </div>
 
       {showHelp && (
@@ -356,12 +358,16 @@ export default function SkrivPage() {
         <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} />
       </div>
 
-      {/* Success overlay — fixed so it never shifts the canvas position */}
+      {/* Success overlay — positioned below canvas */}
       {isSuccess && (
-        <div className="fixed inset-x-0 top-1/3 flex justify-center pointer-events-none z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl px-8 py-4 shadow-2xl border border-green-200 animate-bounce">
+        <div className="mt-6">
+          <button
+            onClick={goNext}
+            className="mx-auto block bg-white/95 backdrop-blur-sm rounded-3xl px-8 py-4 shadow-2xl border border-green-200 hover:bg-white active:scale-95 transition-transform"
+          >
             <p className="text-2xl font-black text-green-600 text-center">Bra jobbat! 🎉</p>
-          </div>
+            <p className="text-sm font-bold text-green-600 text-center mt-2">Tryck för nästa →</p>
+          </button>
         </div>
       )}
 
