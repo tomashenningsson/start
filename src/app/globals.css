@@ -34,6 +34,12 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  *,
+  *::before,
+  *::after {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   a {
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;

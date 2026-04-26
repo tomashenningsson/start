@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useProgress } from '@/hooks/useProgress';
 import { useKidsAuth } from '@/contexts/KidsAuthContext';
 import { useSound } from '@/contexts/SoundContext';
@@ -83,7 +83,6 @@ const activities = [
 ];
 
 export default function Home() {
-  const router = useRouter();
   const { progress } = useProgress();
   const { user, configured, signOut } = useKidsAuth();
   const { muted, toggleMute } = useSound();
@@ -183,47 +182,53 @@ export default function Home() {
       {/* Activity cards */}
       <div className="grid grid-cols-2 gap-4 w-full max-w-md md:max-w-2xl">
         {activities.map((a, idx) => (
-          <div
+          <Link
             key={a.href}
-            onClick={() => router.push(a.href)}
-            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] cursor-pointer select-none ${
+            href={a.href}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            className={`group relative flex flex-col items-center justify-center p-6 md:p-8 rounded-3xl overflow-hidden active:scale-95 transition-all duration-300 min-h-[160px] md:min-h-[200px] outline-none focus:outline-none select-none ${
               idx === activities.length - 1 && activities.length % 2 !== 0 ? 'col-span-2' : ''
             }`}
             style={{
               boxShadow: `0 8px 32px -4px ${a.shadow}, 0 0 0 1px rgba(255,255,255,0.18), 0 1px 0 rgba(255,255,255,0.25) inset`,
+              outline: 'none',
               WebkitTapHighlightColor: 'transparent',
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
             }}
           >
             {/* Blurred glass base */}
-            <div className="absolute inset-0 backdrop-blur-md bg-black/20" />
+            <div className="absolute inset-0 backdrop-blur-md bg-black/20 pointer-events-none" />
 
             {/* Main rich gradient */}
             <div
-              className="absolute inset-0 opacity-70 group-hover:opacity-85 transition-opacity duration-300"
+              className="absolute inset-0 opacity-70 group-hover:opacity-85 transition-opacity duration-300 pointer-events-none"
               style={{ background: a.gradient }}
             />
 
             {/* Iridescent oil-colour overlay */}
             <div
-              className="absolute inset-0 opacity-35 group-hover:opacity-50 transition-opacity duration-300 mix-blend-screen"
+              className="absolute inset-0 opacity-35 group-hover:opacity-50 transition-opacity duration-300 mix-blend-screen pointer-events-none"
               style={{ background: a.iris }}
             />
 
             {/* Top gloss — the glass-bubble shine */}
             <div
-              className="absolute inset-x-0 top-0 h-3/5 rounded-t-3xl"
+              className="absolute inset-x-0 top-0 h-3/5 rounded-t-3xl pointer-events-none"
               style={{ background: 'linear-gradient(165deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.12) 38%, transparent 70%)' }}
             />
 
             {/* Bottom soft reflection */}
             <div
-              className="absolute inset-x-8 bottom-0 h-12"
+              className="absolute inset-x-8 bottom-0 h-12 pointer-events-none"
               style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.15) 0%, transparent 70%)' }}
             />
 
             {/* Inner edge lighting (glass rim) */}
             <div
-              className="absolute inset-0 rounded-3xl"
+              className="absolute inset-0 rounded-3xl pointer-events-none"
               style={{ boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.55), inset 0 -1px 1px rgba(255,255,255,0.12), inset 1px 0 1px rgba(255,255,255,0.18), inset -1px 0 1px rgba(255,255,255,0.18)' }}
             />
 
@@ -251,7 +256,7 @@ export default function Home() {
             <div className="relative z-10 text-sm md:text-base font-semibold text-white/75 mt-1">
               {a.subtitle}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
