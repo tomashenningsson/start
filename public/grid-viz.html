@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spårskolan – grid-visualisering</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; max-width: 1100px; margin: 0 auto; }
+  h1 { color: #fff; }
+  .legend { display: flex; gap: 20px; margin: 16px 0; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid #444; }
+  .grid-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+  .cell-box { background: #2a2a3e; padding: 12px; border-radius: 12px; }
+  .cell-box h3 { margin: 0 0 8px; text-align: center; font-size: 18px; }
+  canvas { display: block; border: 1px solid #444; image-rendering: pixelated; }
+  .stat { font-size: 12px; color: #aaa; text-align: center; margin-top: 6px; }
+  p.note { font-size: 14px; line-height: 1.5; color: #ccc; max-width: 720px; }
+  .params { background: #2a2a3e; padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>Spårskolan — så här "ser" algoritmen bokstaven</h1>
+
+<p class="note">Canvasen är 320×320 px. Över den ligger ett <b>20×20 grid</b> där varje cell är 16×16 px.
+För varje cell samplas 9 punkter (3×3) — om 3 av 9 träffar bokstaven markeras cellen som <b>"giltig"</b>.
+När du målar med fingret markeras alla celler vars mittpunkt ligger inom 12 px (penselns radie) av strecket.
+Om cellen är giltig räknas den som <b>"covered"</b>, annars som <b>"outside"</b>.</p>
+
+<div class="params">
+  GRID = 20  ·  CELL = 16 px  ·  STROKE_WIDTH = 24 px  ·  Validity = 3/9 samples  ·  MIN_COVERAGE = 40 %  ·  MIN_QUALITY = 0.40
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="swatch" style="background: rgba(34,197,94,0.45)"></div> Giltig cell (del av bokstaven)</div>
+  <div class="legend-item"><div class="swatch" style="background: rgba(255,255,255,0.06); border-color: #444"></div> Utanför bokstaven</div>
+  <div class="legend-item"><div class="swatch" style="background: rgba(139,92,246,0.5)"></div> Bokstavens kontur (referens)</div>
+</div>
+
+<h2>Bokstäver där giltig zon kan vara klurig</h2>
+<div class="grid-row" id="row-tricky"></div>
+
+<h2>Bokstäver med tjocka strokes</h2>
+<div class="grid-row" id="row-thick"></div>
+
+<h2>Siffror</h2>
+<div class="grid-row" id="row-numbers"></div>
+
+<script>
+  const CANVAS_SIZE = 320;
+  const GRID = 20;
+  const CELL = CANVAS_SIZE / GRID;
+  const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
+  const CHAR_Y = Math.round(CANVAS_SIZE * 0.52);
+  const VALIDITY_THRESHOLD = 3; // out of 9 samples
+
+  function buildValidCells(char) {
+    const oc = document.createElement('canvas');
+    oc.width = CANVAS_SIZE; oc.height = CANVAS_SIZE;
+    const ctx = oc.getContext('2d');
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.font = `bold ${Math.round(FONT_SIZE * 1.12)}px Arial, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(char, CANVAS_SIZE / 2, CHAR_Y);
+
+    const data = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE).data;
+    const valid = new Set();
+    for (let gy = 0; gy < GRID; gy++) {
+      for (let gx = 0; gx < GRID; gx++) {
+        let hits = 0;
+        for (let sy = 0; sy < 3; sy++) {
+          for (let sx = 0; sx < 3; sx++) {
+            const px = Math.floor(gx * CELL + (sx + 0.5) * CELL / 3);
+            const py = Math.floor(gy * CELL + (sy + 0.5) * CELL / 3);
+            const i = (py * CANVAS_SIZE + px) * 4;
+            if (data[i] > 80) hits++;
+          }
+        }
+        if (hits >= VALIDITY_THRESHOLD) valid.add(`${gx},${gy}`);
+      }
+    }
+    return valid;
+  }
+
+  function renderLetter(parent, char) {
+    const wrap = document.createElement('div');
+    wrap.className = 'cell-box';
+
+    const title = document.createElement('h3');
+    title.textContent = char;
+    wrap.appendChild(title);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
+    canvas.style.width = '240px';
+    canvas.style.height = '240px';
+    canvas.style.background = '#fdfdff';
+    wrap.appendChild(canvas);
+
+    const valid = buildValidCells(char);
+
+    const ctx = canvas.getContext('2d');
+
+    // Reference letter (semi-transparent purple, what the user sees as guide)
+    ctx.font = `bold ${FONT_SIZE}px Arial, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(139, 92, 246, 0.5)';
+    ctx.fillText(char, CANVAS_SIZE / 2, CHAR_Y);
+
+    // Paint valid cells in green tint
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.35)';
+    valid.forEach(key => {
+      const [gx, gy] = key.split(',').map(Number);
+      ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+    });
+
+    // Draw grid lines
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= GRID; i++) {
+      ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, CANVAS_SIZE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * CELL); ctx.lineTo(CANVAS_SIZE, i * CELL); ctx.stroke();
+    }
+
+    const stat = document.createElement('div');
+    stat.className = 'stat';
+    stat.textContent = `valid.size = ${valid.size} / 400 celler  ·  40% = ${Math.ceil(valid.size * 0.4)} celler måste täckas`;
+    wrap.appendChild(stat);
+
+    parent.appendChild(wrap);
+  }
+
+  ['E', 'G', 'K', 'V', 'W'].forEach(c => renderLetter(document.getElementById('row-tricky'), c));
+  ['B', 'O', 'D', 'M', 'A'].forEach(c => renderLetter(document.getElementById('row-thick'), c));
+  ['1', '7', '4', '8'].forEach(c => renderLetter(document.getElementById('row-numbers'), c));
+</script>
+
+</body>
+</html>
