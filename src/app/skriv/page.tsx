@@ -343,31 +343,32 @@ export default function SkrivPage() {
         </span>
       </div>
 
-      <p className="text-center text-xs font-bold text-white/50 mb-3 px-4">
-        Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
-        {'  ·  '}
-        <span className="text-violet-400">Blått = rätt</span>
-        {'  ·  '}
-        <span className="text-red-400">Rött = utanför</span>
-      </p>
-
-      {/* Canvas */}
-      <div className="px-6 max-w-sm mx-auto w-full">
-        <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} />
-      </div>
-
-      {/* Success — inline button below canvas; doesn't cover the progress bar or letter */}
-      {isSuccess && (
-        <div className="px-6 max-w-sm mx-auto w-full mt-4">
+      {/* Helper text OR success button — sits between progress bar and canvas so
+          it hovers above the letter without covering it or shifting the layout */}
+      {isSuccess ? (
+        <div className="flex justify-center mb-3 px-4">
           <button
             onClick={goNext}
-            className="w-full bg-gradient-to-r from-emerald-400 to-green-500 text-white font-black text-lg py-4 rounded-2xl shadow-2xl active:scale-95 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3 ring-4 ring-emerald-300/50"
+            className="bg-gradient-to-r from-emerald-400 to-green-500 text-white font-black text-base px-6 py-3 rounded-full shadow-2xl active:scale-95 transition-transform flex items-center gap-2 ring-2 ring-emerald-200/60 animate-bounce"
           >
             <span>Bra jobbat! 🎉</span>
             <span className="opacity-90">Nästa →</span>
           </button>
         </div>
+      ) : (
+        <p className="text-center text-xs font-bold text-white/50 mb-3 px-4">
+          Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
+          {'  ·  '}
+          <span className="text-violet-400">Blått = rätt</span>
+          {'  ·  '}
+          <span className="text-red-400">Rött = utanför</span>
+        </p>
       )}
+
+      {/* Canvas */}
+      <div className="px-6 max-w-sm mx-auto w-full">
+        <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} />
+      </div>
 
       {/* Navigation dots — sliding window around current character */}
       <NavigationDots
