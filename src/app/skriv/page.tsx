@@ -16,8 +16,11 @@ const STROKE_WIDTH = 24;
 const GRID = 14;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
-const MIN_COVERAGE = 82;   // % of character cells that must be covered
-const MIN_QUALITY = 0.52;  // fraction of stroke-center points that must be inside
+const MIN_COVERAGE = 90;   // % of character cells that must be covered
+const MIN_QUALITY = 0.72;  // fraction of stroke-center points that must be inside
+
+// Sliding window for navigation dots — show a few characters before/after current
+const DOTS_WINDOW = 9;
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
@@ -353,34 +356,68 @@ export default function SkrivPage() {
         <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} />
       </div>
 
-      {/* Success overlay — fixed so it never shifts the canvas position */}
+      {/* Success — inline button below canvas; doesn't cover the progress bar or letter */}
       {isSuccess && (
-        <div className="fixed inset-x-0 top-1/3 flex justify-center pointer-events-none z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl px-8 py-4 shadow-2xl border border-green-200 animate-bounce">
-            <p className="text-2xl font-black text-green-600 text-center">Bra jobbat! 🎉</p>
-          </div>
+        <div className="px-6 max-w-sm mx-auto w-full mt-4">
+          <button
+            onClick={goNext}
+            className="w-full bg-gradient-to-r from-emerald-400 to-green-500 text-white font-black text-lg py-4 rounded-2xl shadow-2xl active:scale-95 hover:scale-[1.02] transition-transform flex items-center justify-center gap-3 ring-4 ring-emerald-300/50"
+          >
+            <span>Bra jobbat! 🎉</span>
+            <span className="opacity-90">Nästa →</span>
+          </button>
         </div>
       )}
 
-      {/* Navigation dots */}
-      <div className="flex justify-center gap-1.5 mt-4 px-4 flex-wrap max-w-sm mx-auto">
-        {items.map((item, i) => {
-          const learned = mode === 'letters'
-            ? appProgress.learnedLetters.includes(item)
-            : appProgress.learnedNumbers.includes(parseInt(item, 10));
-          return (
-            <button key={i} onClick={() => goTo(i)}
-              className={`w-7 h-7 rounded-full text-xs font-black transition-all ${
-                i === idx ? 'bg-orange-400 text-white scale-110 shadow'
-                : learned ? 'bg-green-100 text-green-600 ring-1 ring-green-300 hover:bg-green-200'
-                : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
-              }`}
-            >
-              {item}
-            </button>
-          );
-        })}
-      </div>
+      {/* Navigation dots — sliding window around current character */}
+      <NavigationDots
+        items={items}
+        idx={idx}
+        mode={mode}
+        learnedLetters={appProgress.learnedLetters}
+        learnedNumbers={appProgress.learnedNumbers}
+        onSelect={goTo}
+      />
     </GameBackground>
+  );
+}
+
+interface NavigationDotsProps {
+  items: string[];
+  idx: number;
+  mode: Mode;
+  learnedLetters: string[];
+  learnedNumbers: number[];
+  onSelect: (i: number) => void;
+}
+
+function NavigationDots({ items, idx, mode, learnedLetters, learnedNumbers, onSelect }: NavigationDotsProps) {
+  const half = Math.floor(DOTS_WINDOW / 2);
+  const end = Math.min(items.length, Math.max(idx + half + 1, DOTS_WINDOW));
+  const start = Math.max(0, end - DOTS_WINDOW);
+  const visible = items.slice(start, end);
+
+  return (
+    <div className="flex justify-center items-center gap-1.5 mt-4 px-4 max-w-sm mx-auto">
+      {start > 0 && <span className="text-white/40 font-black text-sm select-none">‹</span>}
+      {visible.map((item, i) => {
+        const realIdx = start + i;
+        const learned = mode === 'letters'
+          ? learnedLetters.includes(item)
+          : learnedNumbers.includes(parseInt(item, 10));
+        return (
+          <button key={item} onClick={() => onSelect(realIdx)}
+            className={`w-7 h-7 rounded-full text-xs font-black transition-all flex-shrink-0 ${
+              realIdx === idx ? 'bg-orange-400 text-white scale-110 shadow'
+              : learned ? 'bg-green-100 text-green-600 ring-1 ring-green-300 hover:bg-green-200'
+              : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
+            }`}
+          >
+            {item}
+          </button>
+        );
+      })}
+      {end < items.length && <span className="text-white/40 font-black text-sm select-none">›</span>}
+    </div>
   );
 }
