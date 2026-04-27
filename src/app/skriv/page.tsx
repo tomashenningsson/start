@@ -17,7 +17,7 @@ const GRID = 20;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
 const MIN_COVERAGE = 50;   // % of character cells that must be covered
-const MIN_QUALITY = 0.50;  // fraction of painted area that must be inside the letter
+const MIN_QUALITY = 0.40;  // fraction of painted area that must be inside the letter
 
 // Sliding window for navigation dots — show a few characters before/after current
 const DOTS_WINDOW = 9;
@@ -59,7 +59,11 @@ function buildValidCells(char: string): Set<string> {
 
   for (let gy = 0; gy < GRID; gy++) {
     for (let gx = 0; gx < GRID; gx++) {
-      // Sample 3×3 points inside cell; cell is valid if majority are white
+      // Sample 3×3 points inside cell; mark valid if any meaningful portion of
+      // the cell is on the letter (3/9 ≈ 33%). This makes thin diagonals in
+      // K/V/W reliably recognised — at 5/9 a diagonal would only mark cells
+      // it passed centrally through, leaving the user's stroke counted as
+      // "outside" along most of the diagonal.
       let hits = 0;
       for (let sy = 0; sy < 3; sy++) {
         for (let sx = 0; sx < 3; sx++) {
@@ -69,7 +73,7 @@ function buildValidCells(char: string): Set<string> {
           if (data[i] > 80) hits++;
         }
       }
-      if (hits >= 5) valid.add(`${gx},${gy}`); // majority of 9 samples
+      if (hits >= 3) valid.add(`${gx},${gy}`);
     }
   }
   return valid;
