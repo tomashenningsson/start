@@ -16,7 +16,7 @@ const STROKE_WIDTH = 24;
 const GRID = 20;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
-const MIN_COVERAGE = 50;   // % of character cells that must be covered
+const MIN_COVERAGE = 40;   // % of character cells that must be covered
 const MIN_QUALITY = 0.40;  // fraction of painted area that must be inside the letter
 
 // Sliding window for navigation dots — show a few characters before/after current
