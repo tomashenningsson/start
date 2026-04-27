@@ -13,11 +13,11 @@ type Mode = 'letters' | 'numbers';
 
 const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
-const GRID = 14;
+const GRID = 20;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
-const MIN_COVERAGE = 96;   // % of character cells that must be covered
-const MIN_QUALITY = 0.72;  // fraction of stroke-center points that must be inside
+const MIN_COVERAGE = 88;   // % of character cells that must be covered
+const MIN_QUALITY = 0.80;  // fraction of painted area that must be inside the letter
 
 // Sliding window for navigation dots — show a few characters before/after current
 const DOTS_WINDOW = 9;
@@ -137,30 +137,50 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     ctx.stroke();
   }
 
-  function updateCoverage(x: number, y: number) {
+  // Mark every grid cell whose CENTER is within the painted stroke disc at (x,y).
+  // This matches the visual stroke (radius STROKE_WIDTH/2) instead of the old
+  // square radius that was ~5× more generous than what was actually drawn.
+  function markStrokePoint(x: number, y: number) {
     const valid = validCellsRef.current;
     const covered = coveredCellsRef.current;
     const outside = outsideCellsRef.current;
-    const r = Math.ceil(STROKE_WIDTH / 2 / CELL) + 1;
+    const r = STROKE_WIDTH / 2;
+    const rCells = Math.ceil(r / CELL);
     const cgx = Math.floor(x / CELL);
     const cgy = Math.floor(y / CELL);
 
-    // Track whether this stroke's center point is inside or outside
-    const centerKey = `${cgx},${cgy}`;
-    if (!valid.has(centerKey)) outside.add(centerKey);
-
-    // Expand coverage radius for nearby valid cells
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
+    for (let dy = -rCells; dy <= rCells; dy++) {
+      for (let dx = -rCells; dx <= rCells; dx++) {
+        const ccx = (cgx + dx + 0.5) * CELL;
+        const ccy = (cgy + dy + 0.5) * CELL;
+        if (Math.hypot(ccx - x, ccy - y) > r) continue;
         const key = `${cgx + dx},${cgy + dy}`;
         if (valid.has(key)) covered.add(key);
+        else outside.add(key);
       }
     }
+  }
 
+  function updateProgress() {
+    const valid = validCellsRef.current;
+    const covered = coveredCellsRef.current;
+    const outside = outsideCellsRef.current;
     const coveragePct = Math.round(covered.size / Math.max(valid.size, 1) * 100);
     const quality = covered.size / Math.max(covered.size + outside.size, 1);
     const success = coveragePct >= MIN_COVERAGE && quality >= MIN_QUALITY;
     onProgressRef.current(success ? 100 : Math.min(coveragePct, 99));
+  }
+
+  // Sample along the segment so fast finger drags don't skip cells between samples.
+  function trackStrokeSegment(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const dist = Math.hypot(to.x - from.x, to.y - from.y);
+    const step = STROKE_WIDTH / 3;
+    const steps = Math.max(1, Math.ceil(dist / step));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      markStrokePoint(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t);
+    }
+    updateProgress();
   }
 
   // ── Touch events: native non-passive listeners so preventDefault() stops page scroll ──
@@ -187,7 +207,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
       const pos = toCanvas(t.clientX, t.clientY, strokeRectRef.current);
       const last = lastPosRef.current ?? pos;
       paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
-      updateCoverage(pos.x, pos.y);
+      trackStrokeSegment(last, pos);
       lastPosRef.current = pos;
     };
 
@@ -227,7 +247,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     const pos = toCanvas(e.clientX, e.clientY, strokeRectRef.current);
     const last = lastPosRef.current ?? pos;
     paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
-    updateCoverage(pos.x, pos.y);
+    trackStrokeSegment(last, pos);
     lastPosRef.current = pos;
   };
   const onMouseUp = () => {
