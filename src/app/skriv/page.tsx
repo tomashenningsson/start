@@ -16,7 +16,7 @@ const STROKE_WIDTH = 24;
 const GRID = 14;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
-const MIN_COVERAGE = 90;   // % of character cells that must be covered
+const MIN_COVERAGE = 96;   // % of character cells that must be covered
 const MIN_QUALITY = 0.72;  // fraction of stroke-center points that must be inside
 
 // Sliding window for navigation dots — show a few characters before/after current
