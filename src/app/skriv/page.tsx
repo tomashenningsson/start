@@ -26,7 +26,7 @@ const DOTS_WINDOW = 9;
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
 const CHAR_Y = Math.round(CANVAS_SIZE * 0.52); // center-ish with middle baseline
 
-function drawReference(ctx: CanvasRenderingContext2D, char: string) {
+function drawReference(ctx: CanvasRenderingContext2D, char: string, showGrid: boolean, valid: Set<string>) {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.fillStyle = '#f5f3ff';
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -36,6 +36,22 @@ function drawReference(ctx: CanvasRenderingContext2D, char: string) {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(139, 92, 246, 0.18)';
   ctx.fillText(char, CANVAS_SIZE / 2, CHAR_Y);
+
+  if (showGrid) {
+    // Translucent green tint over cells the algorithm considers "inside" the letter
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.32)';
+    valid.forEach((key) => {
+      const [gx, gy] = key.split(',').map(Number);
+      ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+    });
+    // Faint grid lines
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= GRID; i++) {
+      ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, CANVAS_SIZE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * CELL); ctx.lineTo(CANVAS_SIZE, i * CELL); ctx.stroke();
+    }
+  }
 }
 
 // Build a set of which 14×14 grid cells are "inside" the character
@@ -88,9 +104,10 @@ function isInsideValid(validCells: Set<string>, x: number, y: number): boolean {
 interface TracingCanvasProps {
   char: string;
   onProgress: (pct: number) => void;
+  showGrid: boolean;
 }
 
-function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
+function TracingCanvas({ char, onProgress, showGrid }: TracingCanvasProps) {
   const refCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const validCellsRef = useRef<Set<string>>(new Set());
@@ -109,13 +126,13 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     const refCanvas = refCanvasRef.current;
     const drawCanvas = drawCanvasRef.current;
     if (!refCanvas || !drawCanvas) return;
-    drawReference(refCanvas.getContext('2d')!, char);
-    drawCanvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     validCellsRef.current = buildValidCells(char);
+    drawReference(refCanvas.getContext('2d')!, char, showGrid, validCellsRef.current);
+    drawCanvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     coveredCellsRef.current = new Set();
     outsideCellsRef.current = new Set();
     onProgressRef.current(0);
-  }, [char]);
+  }, [char, showGrid]);
 
   // Convert viewport coords → canvas coords using a pre-captured DOMRect
   function toCanvas(clientX: number, clientY: number, rect: DOMRect) {
@@ -297,6 +314,7 @@ export default function SkrivPage() {
   const [mode, setMode] = useState<Mode>('letters');
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [showGrid, setShowGrid] = useState(false);
 
   const items = mode === 'letters' ? LETTERS : NUMBERS;
   const current = items[idx];
@@ -391,7 +409,17 @@ export default function SkrivPage() {
 
       {/* Canvas */}
       <div className="px-6 max-w-sm mx-auto w-full">
-        <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} />
+        <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} showGrid={showGrid} />
+      </div>
+
+      {/* Debug grid toggle — shows which cells the algorithm considers part of the letter */}
+      <div className="flex justify-center mt-2">
+        <button
+          onClick={() => setShowGrid(g => !g)}
+          className="text-xs font-bold text-white/60 hover:text-white bg-white/10 rounded-full px-3 py-1 ring-1 ring-white/20 transition-colors"
+        >
+          {showGrid ? '🔍 Dölj grid' : '🔍 Visa grid'}
+        </button>
       </div>
 
       {/* Navigation dots — sliding window around current character */}
