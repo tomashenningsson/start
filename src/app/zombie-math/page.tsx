@@ -150,7 +150,7 @@ function MenuScreen({ onStart }: { onStart: (mode: Mode) => void }) {
           cursor: 'pointer', letterSpacing: 2,
           boxShadow: '0 4px 20px rgba(29,78,216,0.5)',
         }}>
-          LÄTT — 60% fart ⭐1/tal
+          LÄTT — 60% fart ⭐2/tal
         </button>
         <button onClick={() => onStart('mini')} style={{
           background: 'linear-gradient(135deg, #16a34a, #15803d)',
@@ -292,7 +292,7 @@ export default function ZombieGame() {
         g.barriers = [...g.barriers, nb].sort((a, b) => b.position - a.position);
         setBarriers([...g.barriers]);
       }
-      const pts = modeRef.current === 'normal' ? 3 : 1;
+      const pts = modeRef.current === 'normal' ? 3 : modeRef.current === 'easy' ? 2 : 1;
       g.score += pts * g.level;
       g.level  = modeRef.current === 'mini' ? 1 : Math.floor(g.score / 24) + 1;
       setScore(g.score);
