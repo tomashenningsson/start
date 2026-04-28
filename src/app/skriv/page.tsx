@@ -13,17 +13,20 @@ type Mode = 'letters' | 'numbers';
 
 const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
-const GRID = 14;
+const GRID = 40;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
-const MIN_COVERAGE = 82;   // % of character cells that must be covered
-const MIN_QUALITY = 0.52;  // fraction of stroke-center points that must be inside
+const MIN_COVERAGE = 50;   // % of character cells that must be covered
+const MIN_QUALITY = 0.40;  // fraction of painted area that must be inside the letter
+
+// Sliding window for navigation dots — show a few characters before/after current
+const DOTS_WINDOW = 9;
 
 // Shared font/position so reference and mask exactly match
 const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
 const CHAR_Y = Math.round(CANVAS_SIZE * 0.52); // center-ish with middle baseline
 
-function drawReference(ctx: CanvasRenderingContext2D, char: string) {
+function drawReference(ctx: CanvasRenderingContext2D, char: string, showGrid: boolean, valid: Set<string>) {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   ctx.fillStyle = '#f5f3ff';
   ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -33,6 +36,22 @@ function drawReference(ctx: CanvasRenderingContext2D, char: string) {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = 'rgba(139, 92, 246, 0.18)';
   ctx.fillText(char, CANVAS_SIZE / 2, CHAR_Y);
+
+  if (showGrid) {
+    // Translucent green tint over cells the algorithm considers "inside" the letter
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.32)';
+    valid.forEach((key) => {
+      const [gx, gy] = key.split(',').map(Number);
+      ctx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+    });
+    // Faint grid lines
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= GRID; i++) {
+      ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, CANVAS_SIZE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * CELL); ctx.lineTo(CANVAS_SIZE, i * CELL); ctx.stroke();
+    }
+  }
 }
 
 // Build a set of which 14×14 grid cells are "inside" the character
@@ -56,7 +75,11 @@ function buildValidCells(char: string): Set<string> {
 
   for (let gy = 0; gy < GRID; gy++) {
     for (let gx = 0; gx < GRID; gx++) {
-      // Sample 3×3 points inside cell; cell is valid if majority are white
+      // Sample 3×3 points inside cell; mark valid if any meaningful portion of
+      // the cell is on the letter (3/9 ≈ 33%). This makes thin diagonals in
+      // K/V/W reliably recognised — at 5/9 a diagonal would only mark cells
+      // it passed centrally through, leaving the user's stroke counted as
+      // "outside" along most of the diagonal.
       let hits = 0;
       for (let sy = 0; sy < 3; sy++) {
         for (let sx = 0; sx < 3; sx++) {
@@ -66,7 +89,7 @@ function buildValidCells(char: string): Set<string> {
           if (data[i] > 80) hits++;
         }
       }
-      if (hits >= 5) valid.add(`${gx},${gy}`); // majority of 9 samples
+      if (hits >= 3) valid.add(`${gx},${gy}`);
     }
   }
   return valid;
@@ -81,9 +104,10 @@ function isInsideValid(validCells: Set<string>, x: number, y: number): boolean {
 interface TracingCanvasProps {
   char: string;
   onProgress: (pct: number) => void;
+  showGrid: boolean;
 }
 
-function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
+function TracingCanvas({ char, onProgress, showGrid }: TracingCanvasProps) {
   const refCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const validCellsRef = useRef<Set<string>>(new Set());
@@ -102,13 +126,13 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     const refCanvas = refCanvasRef.current;
     const drawCanvas = drawCanvasRef.current;
     if (!refCanvas || !drawCanvas) return;
-    drawReference(refCanvas.getContext('2d')!, char);
-    drawCanvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     validCellsRef.current = buildValidCells(char);
+    drawReference(refCanvas.getContext('2d')!, char, showGrid, validCellsRef.current);
+    drawCanvas.getContext('2d')!.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     coveredCellsRef.current = new Set();
     outsideCellsRef.current = new Set();
     onProgressRef.current(0);
-  }, [char]);
+  }, [char, showGrid]);
 
   // Convert viewport coords → canvas coords using a pre-captured DOMRect
   function toCanvas(clientX: number, clientY: number, rect: DOMRect) {
@@ -134,30 +158,50 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     ctx.stroke();
   }
 
-  function updateCoverage(x: number, y: number) {
+  // Mark every grid cell whose CENTER is within the painted stroke disc at (x,y).
+  // This matches the visual stroke (radius STROKE_WIDTH/2) instead of the old
+  // square radius that was ~5× more generous than what was actually drawn.
+  function markStrokePoint(x: number, y: number) {
     const valid = validCellsRef.current;
     const covered = coveredCellsRef.current;
     const outside = outsideCellsRef.current;
-    const r = Math.ceil(STROKE_WIDTH / 2 / CELL) + 1;
+    const r = STROKE_WIDTH / 2;
+    const rCells = Math.ceil(r / CELL);
     const cgx = Math.floor(x / CELL);
     const cgy = Math.floor(y / CELL);
 
-    // Track whether this stroke's center point is inside or outside
-    const centerKey = `${cgx},${cgy}`;
-    if (!valid.has(centerKey)) outside.add(centerKey);
-
-    // Expand coverage radius for nearby valid cells
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
+    for (let dy = -rCells; dy <= rCells; dy++) {
+      for (let dx = -rCells; dx <= rCells; dx++) {
+        const ccx = (cgx + dx + 0.5) * CELL;
+        const ccy = (cgy + dy + 0.5) * CELL;
+        if (Math.hypot(ccx - x, ccy - y) > r) continue;
         const key = `${cgx + dx},${cgy + dy}`;
         if (valid.has(key)) covered.add(key);
+        else outside.add(key);
       }
     }
+  }
 
+  function updateProgress() {
+    const valid = validCellsRef.current;
+    const covered = coveredCellsRef.current;
+    const outside = outsideCellsRef.current;
     const coveragePct = Math.round(covered.size / Math.max(valid.size, 1) * 100);
     const quality = covered.size / Math.max(covered.size + outside.size, 1);
     const success = coveragePct >= MIN_COVERAGE && quality >= MIN_QUALITY;
     onProgressRef.current(success ? 100 : Math.min(coveragePct, 99));
+  }
+
+  // Sample along the segment so fast finger drags don't skip cells between samples.
+  function trackStrokeSegment(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const dist = Math.hypot(to.x - from.x, to.y - from.y);
+    const step = STROKE_WIDTH / 3;
+    const steps = Math.max(1, Math.ceil(dist / step));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      markStrokePoint(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t);
+    }
+    updateProgress();
   }
 
   // ── Touch events: native non-passive listeners so preventDefault() stops page scroll ──
@@ -184,7 +228,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
       const pos = toCanvas(t.clientX, t.clientY, strokeRectRef.current);
       const last = lastPosRef.current ?? pos;
       paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
-      updateCoverage(pos.x, pos.y);
+      trackStrokeSegment(last, pos);
       lastPosRef.current = pos;
     };
 
@@ -224,7 +268,7 @@ function TracingCanvas({ char, onProgress }: TracingCanvasProps) {
     const pos = toCanvas(e.clientX, e.clientY, strokeRectRef.current);
     const last = lastPosRef.current ?? pos;
     paintLine(ctx, last, pos, isInsideValid(validCellsRef.current, pos.x, pos.y));
-    updateCoverage(pos.x, pos.y);
+    trackStrokeSegment(last, pos);
     lastPosRef.current = pos;
   };
   const onMouseUp = () => {
@@ -270,6 +314,7 @@ export default function SkrivPage() {
   const [mode, setMode] = useState<Mode>('letters');
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [showGrid, setShowGrid] = useState(false);
 
   const items = mode === 'letters' ? LETTERS : NUMBERS;
   const current = items[idx];
@@ -340,47 +385,92 @@ export default function SkrivPage() {
         </span>
       </div>
 
-      <p className="text-center text-xs font-bold text-white/50 mb-3 px-4">
-        Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
-        {'  ·  '}
-        <span className="text-violet-400">Blått = rätt</span>
-        {'  ·  '}
-        <span className="text-red-400">Rött = utanför</span>
-      </p>
+      {/* Helper text OR success button — sits between progress bar and canvas so
+          it hovers above the letter without covering it or shifting the layout */}
+      {isSuccess ? (
+        <div className="flex justify-center mb-3 px-4">
+          <button
+            onClick={goNext}
+            className="bg-gradient-to-r from-emerald-400 to-green-500 text-white font-black text-base px-6 py-3 rounded-full shadow-2xl active:scale-95 transition-transform flex items-center gap-2 ring-2 ring-emerald-200/60 animate-bounce"
+          >
+            <span>Bra jobbat! 🎉</span>
+            <span className="opacity-90">Nästa →</span>
+          </button>
+        </div>
+      ) : (
+        <p className="text-center text-xs font-bold text-white/50 mb-3 px-4">
+          Rita {mode === 'letters' ? 'bokstaven' : 'siffran'} med fingret eller musen
+          {'  ·  '}
+          <span className="text-violet-400">Blått = rätt</span>
+          {'  ·  '}
+          <span className="text-red-400">Rött = utanför</span>
+        </p>
+      )}
 
       {/* Canvas */}
       <div className="px-6 max-w-sm mx-auto w-full">
-        <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} />
+        <TracingCanvas key={`${mode}-${idx}`} char={current} onProgress={handleProgress} showGrid={showGrid} />
       </div>
 
-      {/* Success overlay — fixed so it never shifts the canvas position */}
-      {isSuccess && (
-        <div className="fixed inset-x-0 top-1/3 flex justify-center pointer-events-none z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl px-8 py-4 shadow-2xl border border-green-200 animate-bounce">
-            <p className="text-2xl font-black text-green-600 text-center">Bra jobbat! 🎉</p>
-          </div>
-        </div>
-      )}
-
-      {/* Navigation dots */}
-      <div className="flex justify-center gap-1.5 mt-4 px-4 flex-wrap max-w-sm mx-auto">
-        {items.map((item, i) => {
-          const learned = mode === 'letters'
-            ? appProgress.learnedLetters.includes(item)
-            : appProgress.learnedNumbers.includes(parseInt(item, 10));
-          return (
-            <button key={i} onClick={() => goTo(i)}
-              className={`w-7 h-7 rounded-full text-xs font-black transition-all ${
-                i === idx ? 'bg-orange-400 text-white scale-110 shadow'
-                : learned ? 'bg-green-100 text-green-600 ring-1 ring-green-300 hover:bg-green-200'
-                : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
-              }`}
-            >
-              {item}
-            </button>
-          );
-        })}
+      {/* Debug grid toggle — shows which cells the algorithm considers part of the letter */}
+      <div className="flex justify-center mt-2">
+        <button
+          onClick={() => setShowGrid(g => !g)}
+          className="text-xs font-bold text-white/60 hover:text-white bg-white/10 rounded-full px-3 py-1 ring-1 ring-white/20 transition-colors"
+        >
+          {showGrid ? '🔍 Dölj grid' : '🔍 Visa grid'}
+        </button>
       </div>
+
+      {/* Navigation dots — sliding window around current character */}
+      <NavigationDots
+        items={items}
+        idx={idx}
+        mode={mode}
+        learnedLetters={appProgress.learnedLetters}
+        learnedNumbers={appProgress.learnedNumbers}
+        onSelect={goTo}
+      />
     </GameBackground>
+  );
+}
+
+interface NavigationDotsProps {
+  items: string[];
+  idx: number;
+  mode: Mode;
+  learnedLetters: string[];
+  learnedNumbers: number[];
+  onSelect: (i: number) => void;
+}
+
+function NavigationDots({ items, idx, mode, learnedLetters, learnedNumbers, onSelect }: NavigationDotsProps) {
+  const half = Math.floor(DOTS_WINDOW / 2);
+  const end = Math.min(items.length, Math.max(idx + half + 1, DOTS_WINDOW));
+  const start = Math.max(0, end - DOTS_WINDOW);
+  const visible = items.slice(start, end);
+
+  return (
+    <div className="flex justify-center items-center gap-1.5 mt-4 px-4 max-w-sm mx-auto">
+      {start > 0 && <span className="text-white/40 font-black text-sm select-none">‹</span>}
+      {visible.map((item, i) => {
+        const realIdx = start + i;
+        const learned = mode === 'letters'
+          ? learnedLetters.includes(item)
+          : learnedNumbers.includes(parseInt(item, 10));
+        return (
+          <button key={item} onClick={() => onSelect(realIdx)}
+            className={`w-7 h-7 rounded-full text-xs font-black transition-all flex-shrink-0 ${
+              realIdx === idx ? 'bg-orange-400 text-white scale-110 shadow'
+              : learned ? 'bg-green-100 text-green-600 ring-1 ring-green-300 hover:bg-green-200'
+              : 'bg-white/80 text-gray-500 ring-1 ring-gray-200 hover:bg-white'
+            }`}
+          >
+            {item}
+          </button>
+        );
+      })}
+      {end < items.length && <span className="text-white/40 font-black text-sm select-none">›</span>}
+    </div>
   );
 }
