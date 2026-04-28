@@ -44,7 +44,19 @@ function rand(a: number, b: number) {
   return Math.floor(Math.random() * (b - a + 1)) + a;
 }
 
-function mkQuestion(level: number): Question {
+type Mode = 'mini' | 'easy' | 'normal';
+
+function mkQuestion(level: number, mode: Mode = 'normal'): Question {
+  if (mode === 'mini') {
+    const op = Math.random() < 0.6 ? '+' : '-';
+    let n1: number, n2: number, answer: number;
+    if (op === '+') {
+      n1 = rand(1, 5); n2 = rand(1, 5); answer = n1 + n2;
+    } else {
+      n1 = rand(2, 9); n2 = rand(1, n1 - 1); answer = n1 - n2;
+    }
+    return { n1, n2, op, answer };
+  }
   const lv = Math.min(level, 5);
   const ops = lv <= 1 ? ['+', '-'] : lv <= 2 ? ['+', '-', '×'] : ['+', '-', '×', '÷'];
   const op  = ops[rand(0, ops.length - 1)];
@@ -87,7 +99,7 @@ function BarrierEl({ b }: { b: Barrier }) {
   );
 }
 
-function MenuScreen({ onStart }: { onStart: (mode: 'easy' | 'normal') => void }) {
+function MenuScreen({ onStart }: { onStart: (mode: Mode) => void }) {
   return (
     <div style={{
       width: '100vw', height: '100dvh', overflow: 'hidden',
@@ -140,13 +152,23 @@ function MenuScreen({ onStart }: { onStart: (mode: 'easy' | 'normal') => void })
         }}>
           LÄTT — 60% fart ⭐1/tal
         </button>
+        <button onClick={() => onStart('mini')} style={{
+          background: 'linear-gradient(135deg, #16a34a, #15803d)',
+          border: 'none', borderRadius: 18, color: '#fff',
+          fontWeight: 800, fontSize: 14, padding: '10px 30px',
+          cursor: 'pointer', letterSpacing: 2,
+          boxShadow: '0 4px 20px rgba(22,163,74,0.5)',
+        }}>
+          MINI — 30% fart, små tal ⭐1/tal
+        </button>
       </div>
       <style>{`@keyframes zFloat { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-10px) rotate(4deg)} }`}</style>
     </div>
   );
 }
 
-function GameOverScreen({ score, level, mode, onRestart }: { score: number; level: number; mode: 'easy' | 'normal'; onRestart: (m: 'easy' | 'normal') => void }) {
+function GameOverScreen({ score, level, mode, onRestart }: { score: number; level: number; mode: Mode; onRestart: (m: Mode) => void }) {
+  const modeLabel = mode === 'mini' ? '(MINI)' : mode === 'easy' ? '(LÄTT)' : '';
   return (
     <div style={{
       width: '100vw', height: '100dvh', overflow: 'hidden',
@@ -173,9 +195,9 @@ function GameOverScreen({ score, level, mode, onRestart }: { score: number; leve
           cursor: 'pointer', letterSpacing: 2,
           boxShadow: '0 6px 28px rgba(220,38,38,0.5)',
         }}>
-          FÖRSÖK IGEN {mode === 'easy' ? '(LÄTT)' : ''}
+          FÖRSÖK IGEN {modeLabel}
         </button>
-        {mode === 'easy' && (
+        {mode !== 'normal' && (
           <button onClick={() => onRestart('normal')} style={{
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, color: 'rgba(255,255,255,0.6)',
@@ -183,6 +205,16 @@ function GameOverScreen({ score, level, mode, onRestart }: { score: number; leve
             cursor: 'pointer',
           }}>
             Byt till normal ⭐3/tal
+          </button>
+        )}
+        {mode === 'normal' && (
+          <button onClick={() => onRestart('mini')} style={{
+            background: 'rgba(22,163,74,0.15)',
+            border: '1px solid rgba(74,222,128,0.3)', borderRadius: 14, color: 'rgba(187,247,208,0.85)',
+            fontWeight: 700, fontSize: 14, padding: '10px 28px',
+            cursor: 'pointer',
+          }}>
+            Prova MINI — 30% fart
           </button>
         )}
       </div>
@@ -203,10 +235,10 @@ export default function ZombieGame() {
   const [shake, setShake]       = useState(false);
   const [zStruggle, setZStruggle] = useState(false);
   const [pushCooldown, setPushCooldown] = useState(0);
-  const [mode, setMode] = useState<'easy' | 'normal'>('normal');
+  const [mode, setMode] = useState<Mode>('normal');
 
   const pushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const modeRef = useRef<'easy' | 'normal'>('normal');
+  const modeRef = useRef<Mode>('normal');
 
   const gRef = useRef({
     zPos: ZOMBIE_INIT,
@@ -216,14 +248,14 @@ export default function ZombieGame() {
     nextId: 0,
   });
 
-  const startGame = useCallback((selectedMode: 'easy' | 'normal') => {
+  const startGame = useCallback((selectedMode: Mode) => {
     if (pushIntervalRef.current) clearInterval(pushIntervalRef.current);
     pushIntervalRef.current = null;
     const g = gRef.current;
     g.zPos = ZOMBIE_INIT; g.barriers = []; g.score = 0; g.level = 1;
     g.boost = 1; g.boostEnd = 0; g.nextId = 0;
     setZPos(ZOMBIE_INIT); setBarriers([]); setScore(0); setLevel(1);
-    setInput(''); setQuestion(mkQuestion(1));
+    setInput(''); setQuestion(mkQuestion(1, selectedMode));
     setFeedback(null); setShake(false); setZStruggle(false);
     setPushCooldown(0);
     setMode(selectedMode);
@@ -260,9 +292,9 @@ export default function ZombieGame() {
         g.barriers = [...g.barriers, nb].sort((a, b) => b.position - a.position);
         setBarriers([...g.barriers]);
       }
-      const pts = modeRef.current === 'easy' ? 1 : 3;
+      const pts = modeRef.current === 'normal' ? 3 : 1;
       g.score += pts * g.level;
-      g.level  = Math.floor(g.score / 24) + 1;
+      g.level  = modeRef.current === 'mini' ? 1 : Math.floor(g.score / 24) + 1;
       setScore(g.score);
       setLevel(g.level);
       setFeedback('correct');
@@ -274,7 +306,7 @@ export default function ZombieGame() {
       setShake(true);
       setTimeout(() => { setFeedback(null); setShake(false); }, 620);
     }
-    setQuestion(mkQuestion(g.level));
+    setQuestion(mkQuestion(g.level, modeRef.current));
   }, [gs, input, question]);
 
   const handlePush = useCallback(() => {
@@ -316,8 +348,9 @@ export default function ZombieGame() {
     const id = setInterval(() => {
       const now = Date.now();
       if (now > g.boostEnd) g.boost = 1;
-      const speedMult = modeRef.current === 'easy' ? 0.6 : 1.0;
-      const speed = BASE_SPEED * speedMult * (1 + (g.level - 1) * 0.12) * g.boost;
+      const speedMult = modeRef.current === 'mini' ? 0.30 : modeRef.current === 'easy' ? 0.6 : 1.0;
+      const levelRamp = modeRef.current === 'mini' ? 0 : 0.12;
+      const speed = BASE_SPEED * speedMult * (1 + (g.level - 1) * levelRamp) * g.boost;
       const step  = speed * (TICK_MS / 1000);
       const blocking = g.barriers.find(b =>
         b.position <= g.zPos && (g.zPos - b.position) <= TRIGGER_DIST
@@ -399,6 +432,13 @@ export default function ZombieGame() {
                 background: 'rgba(29,78,216,0.25)', padding: '4px 10px', borderRadius: 10,
                 border: '1px solid rgba(147,197,253,0.3)',
               }}>LÄTT</div>
+            )}
+            {mode === 'mini' && (
+              <div style={{
+                color: '#86efac', fontWeight: 700, fontSize: 13,
+                background: 'rgba(22,163,74,0.25)', padding: '4px 10px', borderRadius: 10,
+                border: '1px solid rgba(134,239,172,0.3)',
+              }}>MINI</div>
             )}
             <div style={{
               color: '#f87171', fontWeight: 700, fontSize: 15,
