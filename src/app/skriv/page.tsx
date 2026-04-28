@@ -13,7 +13,7 @@ type Mode = 'letters' | 'numbers';
 
 const CANVAS_SIZE = 320;
 const STROKE_WIDTH = 24;
-const GRID = 20;
+const GRID = 40;
 const CELL = CANVAS_SIZE / GRID;
 const SUCCESS_PCT = 100;
 const MIN_COVERAGE = 40;   // % of character cells that must be covered

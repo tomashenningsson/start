@@ -23,13 +23,13 @@
 
 <h1>Spårskolan — så här "ser" algoritmen bokstaven</h1>
 
-<p class="note">Canvasen är 320×320 px. Över den ligger ett <b>20×20 grid</b> där varje cell är 16×16 px.
+<p class="note">Canvasen är 320×320 px. Över den ligger ett <b>40×40 grid</b> där varje cell är 8×8 px.
 För varje cell samplas 9 punkter (3×3) — om 3 av 9 träffar bokstaven markeras cellen som <b>"giltig"</b>.
 När du målar med fingret markeras alla celler vars mittpunkt ligger inom 12 px (penselns radie) av strecket.
 Om cellen är giltig räknas den som <b>"covered"</b>, annars som <b>"outside"</b>.</p>
 
 <div class="params">
-  GRID = 20  ·  CELL = 16 px  ·  STROKE_WIDTH = 24 px  ·  Validity = 3/9 samples  ·  MIN_COVERAGE = 40 %  ·  MIN_QUALITY = 0.40
+  GRID = 40  ·  CELL = 8 px  ·  STROKE_WIDTH = 24 px  ·  Validity = 3/9 samples  ·  MIN_COVERAGE = 40 %  ·  MIN_QUALITY = 0.40
 </div>
 
 <div class="legend">
@@ -49,7 +49,7 @@ Om cellen är giltig räknas den som <b>"covered"</b>, annars som <b>"outside"</
 
 <script>
   const CANVAS_SIZE = 320;
-  const GRID = 20;
+  const GRID = 40;
   const CELL = CANVAS_SIZE / GRID;
   const FONT_SIZE = Math.round(CANVAS_SIZE * 0.76);
   const CHAR_Y = Math.round(CANVAS_SIZE * 0.52);
@@ -127,7 +127,7 @@ Om cellen är giltig räknas den som <b>"covered"</b>, annars som <b>"outside"</
 
     const stat = document.createElement('div');
     stat.className = 'stat';
-    stat.textContent = `valid.size = ${valid.size} / 400 celler  ·  40% = ${Math.ceil(valid.size * 0.4)} celler måste täckas`;
+    stat.textContent = `valid.size = ${valid.size} / 1600 celler  ·  40% = ${Math.ceil(valid.size * 0.4)} celler måste täckas`;
     wrap.appendChild(stat);
 
     parent.appendChild(wrap);
