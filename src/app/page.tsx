@@ -80,6 +80,15 @@ const activities = [
     iris: 'linear-gradient(225deg, #991b1b 0%, #b91c1c 55%, #4ade80 100%)',
     shadow: 'rgba(22,163,74,0.55)',
   },
+  {
+    href: '/skattjakt',
+    emoji: '🗺️',
+    title: 'Skattjakten',
+    subtitle: 'Lös gåtor & hitta skatten!',
+    gradient: 'linear-gradient(135deg, #78350f 0%, #b45309 30%, #f59e0b 65%, #fbbf24 100%)',
+    iris: 'linear-gradient(225deg, #7c2d12 0%, #d97706 55%, #fde047 100%)',
+    shadow: 'rgba(245,158,11,0.55)',
+  },
 ];
 
 export default function Home() {
@@ -123,6 +132,7 @@ export default function Home() {
         <span className="absolute text-base animate-float-1 opacity-35" style={{ top: '44%', left: '14%' }}>✨</span>
         <span className="absolute text-lg animate-float-2 opacity-30" style={{ top: '80%', left: '25%' }}>🌟</span>
         <span className="absolute text-xl animate-float-3 opacity-35" style={{ top: '5%', left: '40%' }}>🎮</span>
+        <span className="absolute text-2xl animate-float-1 opacity-40" style={{ top: '40%', right: '32%' }}>🗺️</span>
       </div>
 
       {/* Top bar: sound toggle left, auth right — respects iPhone safe area */}
