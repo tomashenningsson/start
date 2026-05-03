@@ -98,6 +98,15 @@ const activities = [
     iris: 'linear-gradient(225deg, #4d7c0f 0%, #6d28d9 55%, #c4b5fd 100%)',
     shadow: 'rgba(109,40,217,0.55)',
   },
+  {
+    href: '/eldfageln',
+    emoji: '🦅',
+    title: 'Eldfågeln',
+    subtitle: 'Bygg muren & slå draken!',
+    gradient: 'linear-gradient(135deg, #2a0a18 0%, #7f1d1d 28%, #ea580c 60%, #fde047 100%)',
+    iris: 'linear-gradient(225deg, #fde047 0%, #ea580c 55%, #b91c1c 100%)',
+    shadow: 'rgba(234,88,12,0.55)',
+  },
 ];
 
 export default function Home() {
