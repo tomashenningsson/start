@@ -24,6 +24,9 @@ interface Projectile {
   type: ProjectileType;
   symbol: string;
   spin: number;
+  startX: number;
+  baseY: number;
+  arcHeight: number;
 }
 
 interface FX {
@@ -477,13 +480,18 @@ export default function SkelettGame() {
     const isLetter = Math.random() < d.letterChance;
     const type: ProjectileType = isLetter ? 'slime' : 'arrow';
     const symbol = isLetter ? rand(LETTERS) : rand(DIGITS);
+    const startX = sk.x - 3;
+    const baseY = 8;
     const proj: Projectile = {
       id: idRef.current++,
-      x: sk.x - 3,
-      y: 26 + Math.random() * 6,
+      x: startX,
+      y: baseY,
       vx: -d.projectileSpeed,
       type, symbol,
       spin: Math.random() * 360,
+      startX,
+      baseY,
+      arcHeight: 14 + Math.random() * 5,
     };
     setChoices(buildChoices(symbol, type));
     syncProjectile(proj);
@@ -545,11 +553,12 @@ export default function SkelettGame() {
           syncSkeletons([...stateRef.current.skeletons, ...extra]);
         }
       }
-      // push all skeletons back a bit
+      // push all skeletons back a bit, and cap cooldowns so the next shot
+      // arrives within ~1s instead of waiting out the full base interval
       const pushed = stateRef.current.skeletons.map(s => ({
         ...s,
         x: Math.min(SKELETON_SPAWN, s.x + 6),
-        shootCooldown: Math.max(s.shootCooldown, 1.0),
+        shootCooldown: Math.min(s.shootCooldown, 1.0),
       }));
       syncSkeletons(pushed);
       syncProjectile(null);
@@ -608,9 +617,15 @@ export default function SkelettGame() {
 
       // Update projectile
       if (st.projectile) {
+        const newX = st.projectile.x + st.projectile.vx * dt;
+        const span = st.projectile.startX - PROJECTILE_HIT_X;
+        const traveled = st.projectile.startX - newX;
+        const progress = Math.min(1, Math.max(0, span > 0 ? traveled / span : 1));
+        const arcY = st.projectile.baseY + st.projectile.arcHeight * 4 * progress * (1 - progress);
         const np: Projectile = {
           ...st.projectile,
-          x: st.projectile.x + st.projectile.vx * dt,
+          x: newX,
+          y: arcY,
           spin: st.projectile.spin + 240 * dt,
         };
         if (np.x <= PROJECTILE_HIT_X) {
@@ -618,6 +633,13 @@ export default function SkelettGame() {
           pushFx(np.x, np.y, 'miss');
           syncProjectile(null);
           setChoices([]);
+          // Speed up next shot so the player doesn't wait the full base interval
+          const bumped = st.skeletons.map(s => ({
+            ...s,
+            shootCooldown: Math.min(s.shootCooldown, 1.0),
+          }));
+          st.skeletons = bumped;
+          setSkeletons(bumped);
           st.lives -= 1;
           setLives(st.lives);
           setShake(true); setFlashRed(true);
