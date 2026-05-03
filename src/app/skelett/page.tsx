@@ -321,10 +321,11 @@ function MenuScreen({ onStart, totalStars }: { onStart: () => void; totalStars: 
         animation: 'sFloat 3.2s ease-in-out infinite',
       }}>💀</div>
       <h1 style={{
-        fontSize: 40, fontWeight: 900, margin: '0 0 6px',
+        fontSize: 'clamp(24px, 8.2vw, 38px)', fontWeight: 900, margin: '0 0 6px',
         color: '#e0e7ff',
         textShadow: '0 0 28px rgba(180,200,255,0.85), 0 2px 8px rgba(0,0,0,0.7)',
-        letterSpacing: 4, textAlign: 'center',
+        letterSpacing: 2, textAlign: 'center', whiteSpace: 'nowrap',
+        maxWidth: '100%',
       }}>SKELETTKRYPTAN</h1>
       <p style={{
         color: 'rgba(200,200,230,0.7)', margin: '12px 0 32px',
