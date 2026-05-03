@@ -89,6 +89,15 @@ const activities = [
     iris: 'linear-gradient(225deg, #7c2d12 0%, #d97706 55%, #fde047 100%)',
     shadow: 'rgba(245,158,11,0.55)',
   },
+  {
+    href: '/skelett',
+    emoji: '💀',
+    title: 'Skelettkryptan',
+    subtitle: 'Gissa & försvara!',
+    gradient: 'linear-gradient(135deg, #0a0218 0%, #1f0a3d 28%, #4c1d95 60%, #84cc16 100%)',
+    iris: 'linear-gradient(225deg, #4d7c0f 0%, #6d28d9 55%, #c4b5fd 100%)',
+    shadow: 'rgba(109,40,217,0.55)',
+  },
 ];
 
 export default function Home() {
