@@ -9,6 +9,15 @@ import { X, Loader2 } from 'lucide-react';
 
 const activities = [
   {
+    href: '/draken',
+    emoji: '🐉',
+    title: 'Sifferdraken',
+    subtitle: 'Magiska öar!',
+    gradient: 'linear-gradient(135deg, #5eead4 0%, #67e8f9 28%, #c4b5fd 60%, #f9a8d4 100%)',
+    iris: 'linear-gradient(225deg, #fde68a 0%, #f472b6 50%, #a855f7 100%)',
+    shadow: 'rgba(168,85,247,0.55)',
+  },
+  {
     href: '/bokstaver',
     emoji: '🎯',
     title: 'Bokstavsjakt',

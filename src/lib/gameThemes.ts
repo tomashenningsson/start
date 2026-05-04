@@ -103,6 +103,24 @@ export const GAME_THEMES: Record<string, GameTheme> = {
     ],
   },
 
+  draken: {
+    gradient: 'linear-gradient(160deg, #5eead4 0%, #67e8f9 22%, #c4b5fd 50%, #f9a8d4 78%, #fde68a 100%)',
+    orbs: [
+      { color: '#a855f7', position: { top: '-10%', right: '-8%' }, animation: 'animate-aurora-1', size: '440px', opacity: 0.45 },
+      { color: '#f472b6', position: { bottom: '8%', left: '-10%' }, animation: 'animate-aurora-2', size: '380px', opacity: 0.38 },
+      { color: '#facc15', position: { top: '40%', right: '15%' }, animation: 'animate-aurora-3', size: '300px', opacity: 0.32 },
+      { color: '#22d3ee', position: { top: '20%', left: '8%' }, animation: 'animate-aurora-2', size: '260px', opacity: 0.3 },
+    ],
+    floats: [
+      { emoji: '🐉', position: { top: '8%', left: '4%' }, animation: 'animate-float-1', size: '2rem' },
+      { emoji: '⭐', position: { top: '22%', right: '5%' }, animation: 'animate-float-2', size: '1.5rem' },
+      { emoji: '☁️', position: { top: '52%', left: '3%' }, animation: 'animate-float-3', size: '1.8rem' },
+      { emoji: '✨', position: { bottom: '28%', right: '5%' }, animation: 'animate-float-1', size: '1.4rem' },
+      { emoji: '💎', position: { bottom: '14%', left: '7%' }, animation: 'animate-float-2', size: '1.5rem' },
+      { emoji: '🌈', position: { top: '70%', right: '20%' }, animation: 'animate-float-3', size: '1.6rem' },
+    ],
+  },
+
   storst: {
     gradient: 'linear-gradient(160deg, #000518 0%, #000f38 18%, #001a5a 35%, #0f0a40 58%, #000518 100%)',
     orbs: [
