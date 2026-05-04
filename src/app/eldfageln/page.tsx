@@ -7,6 +7,7 @@ import { useProgress } from '@/hooks/useProgress';
 
 type GameState = 'menu' | 'playing' | 'levelClear' | 'win' | 'gameover';
 type Op = '+' | '-' | '×';
+type Difficulty = 'mini' | 'latt' | 'svar';
 
 interface Fireball {
   id: number;
@@ -48,21 +49,61 @@ const TICK_MS  = 50;
 
 const TOTAL_LEVELS = 5;
 const QUESTIONS_PER_LEVEL = [5, 5, 5, 5, 6];
-const INIT_LIVES = 3;
 const SLOW_CHARGES = 3;
 const SLOW_FACTOR = 0.4;
 const SLOW_MS = 2500;
-
-// How often fireballs spawn (ms). Lower = faster pace. Level 1 is the easy intro.
-const SPAWN_GAP_MS_BY_LEVEL = [3400, 2200, 1900, 1700, 1500];
-// Fireball flight duration (s) by level — higher = more time to answer.
-const FIREBALL_DURATION_BY_LEVEL = [6.5, 5.0, 4.2, 3.6, 3.4];
 // Delay after answering before next question appears (ms).
 const NEXT_QUESTION_DELAY_MS = 120;
 // Max wall layers shown / stackable.
 const MAX_WALL_LAYERS = 6;
-// Wall Y position grows by this amount per stacked layer (visual only).
-const WALL_LAYER_HEIGHT = 22;
+
+interface DifficultyConfig {
+  label: string;
+  age: string;
+  subtitle: string;
+  emoji: string;
+  spawnGap: number[];   // ms per level
+  duration: number[];   // s per level (fireball flight time)
+  lives: number;
+  ops: Op[];
+  numMax: number;
+}
+
+const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
+  mini: {
+    label: 'Mini',
+    age: '4–6 år',
+    subtitle: 'Bara plus, små tal',
+    emoji: '🐣',
+    spawnGap: [5000, 4400, 3900, 3500, 3200],
+    duration: [9.0, 8.0, 7.0, 6.5, 6.0],
+    lives: 5,
+    ops: ['+'],
+    numMax: 5,
+  },
+  latt: {
+    label: 'Lätt',
+    age: '6–8 år',
+    subtitle: 'Plus och minus',
+    emoji: '🦅',
+    spawnGap: [3400, 2200, 1900, 1700, 1500],
+    duration: [6.5, 5.0, 4.2, 3.6, 3.4],
+    lives: 3,
+    ops: ['+', '-'],
+    numMax: 20,
+  },
+  svar: {
+    label: 'Svårt',
+    age: '8+ år',
+    subtitle: 'Plus, minus & gånger',
+    emoji: '🐉',
+    spawnGap: [2400, 1900, 1500, 1300, 1100],
+    duration: [5.0, 4.0, 3.5, 3.0, 2.8],
+    lives: 3,
+    ops: ['+', '-', '×'],
+    numMax: 35,
+  },
+};
 
 const STARS = Array.from({ length: 40 }, (_, i) => ({
   id: i,
@@ -107,38 +148,59 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function generateQuestion(level: number): MathQ {
+function generateQuestion(level: number, diff: Difficulty): MathQ {
   let a = 1, b = 1, op: Op = '+';
 
-  if (level === 1) {
+  if (diff === 'mini') {
     op = '+';
-    a = randInt(1, 5);
-    b = randInt(1, 5);
-  } else if (level === 2) {
-    if (Math.random() < 0.55) {
-      op = '+';
-      a = randInt(2, 10);
-      b = randInt(2, 10);
+    const cap = Math.min(3 + level, 12);
+    a = randInt(1, cap);
+    b = randInt(1, cap);
+  } else if (diff === 'latt') {
+    if (level === 1) {
+      op = '+'; a = randInt(1, 5); b = randInt(1, 5);
+    } else if (level === 2) {
+      if (Math.random() < 0.55) { op = '+'; a = randInt(2, 10); b = randInt(2, 10); }
+      else { op = '-'; a = randInt(5, 12); b = randInt(1, a); }
+    } else if (level === 3) {
+      if (Math.random() < 0.5) { op = '+'; a = randInt(4, 12); b = randInt(2, 10); }
+      else { op = '-'; a = randInt(8, 18); b = randInt(1, a); }
+    } else if (level === 4) {
+      const r = Math.random();
+      if (r < 0.5) { op = '+'; a = randInt(6, 15); b = randInt(2, 12); }
+      else { op = '-'; a = randInt(10, 20); b = randInt(1, a); }
     } else {
-      op = '-';
-      a = randInt(5, 15);
-      b = randInt(1, a);
+      const r = Math.random();
+      if (r < 0.45) { op = '+'; a = randInt(8, 18); b = randInt(2, 12); }
+      else { op = '-'; a = randInt(10, 25); b = randInt(1, a); }
     }
-  } else if (level === 3) {
-    const r = Math.random();
-    if (r < 0.4) { op = '+'; a = randInt(5, 15); b = randInt(5, 15); }
-    else if (r < 0.8) { op = '-'; a = randInt(8, 20); b = randInt(1, a); }
-    else { op = '×'; a = randInt(2, 5); b = randInt(2, 5); }
-  } else if (level === 4) {
-    const r = Math.random();
-    if (r < 0.3) { op = '+'; a = randInt(8, 25); b = randInt(5, 15); }
-    else if (r < 0.6) { op = '-'; a = randInt(10, 30); b = randInt(1, a); }
-    else { op = '×'; a = randInt(2, 6); b = randInt(2, 7); }
   } else {
-    const r = Math.random();
-    if (r < 0.3) { op = '+'; a = randInt(10, 30); b = randInt(5, 25); }
-    else if (r < 0.6) { op = '-'; a = randInt(10, 35); b = randInt(1, a); }
-    else { op = '×'; a = randInt(3, 8); b = randInt(3, 8); }
+    // svar
+    if (level === 1) {
+      const r = Math.random();
+      if (r < 0.5) { op = '+'; a = randInt(5, 15); b = randInt(5, 15); }
+      else { op = '-'; a = randInt(8, 20); b = randInt(1, a); }
+    } else if (level === 2) {
+      const r = Math.random();
+      if (r < 0.4) { op = '+'; a = randInt(8, 20); b = randInt(5, 15); }
+      else if (r < 0.8) { op = '-'; a = randInt(10, 25); b = randInt(1, a); }
+      else { op = '×'; a = randInt(2, 5); b = randInt(2, 5); }
+    } else if (level === 3) {
+      const r = Math.random();
+      if (r < 0.3) { op = '+'; a = randInt(10, 25); b = randInt(5, 20); }
+      else if (r < 0.6) { op = '-'; a = randInt(15, 30); b = randInt(1, a); }
+      else { op = '×'; a = randInt(2, 6); b = randInt(2, 7); }
+    } else if (level === 4) {
+      const r = Math.random();
+      if (r < 0.25) { op = '+'; a = randInt(12, 30); b = randInt(5, 20); }
+      else if (r < 0.55) { op = '-'; a = randInt(15, 35); b = randInt(1, a); }
+      else { op = '×'; a = randInt(3, 8); b = randInt(2, 8); }
+    } else {
+      const r = Math.random();
+      if (r < 0.25) { op = '+'; a = randInt(15, 35); b = randInt(10, 25); }
+      else if (r < 0.55) { op = '-'; a = randInt(20, 40); b = randInt(1, a); }
+      else { op = '×'; a = randInt(3, 9); b = randInt(3, 9); }
+    }
   }
 
   const answer = op === '+' ? a + b : op === '-' ? a - b : a * b;
@@ -522,14 +584,19 @@ function FXEl({ fx }: { fx: FX }) {
 
 // ── Screens ──────────────────────────────────────────────────────────────────
 
-function MenuScreen({ onStart, totalStars }: { onStart: () => void; totalStars: number }) {
+function MenuScreen({ onStart, totalStars, difficulty, onDifficultyChange }: {
+  onStart: () => void;
+  totalStars: number;
+  difficulty: Difficulty;
+  onDifficultyChange: (d: Difficulty) => void;
+}) {
   return (
     <div style={{
-      width: '100vw', height: '100dvh', overflow: 'hidden',
+      width: '100vw', minHeight: '100dvh', overflowY: 'auto',
       background: 'linear-gradient(to bottom, #2a0a1a 0%, #5a1226 22%, #b14f2c 50%, #f4be58 80%, #2a0a18 100%)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
       color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-      padding: 'env(safe-area-inset-top) 24px env(safe-area-inset-bottom)',
+      padding: 'calc(env(safe-area-inset-top) + 56px) 20px calc(env(safe-area-inset-bottom) + 24px)',
       position: 'relative',
     }}>
       <Link href="/" style={{
@@ -539,48 +606,81 @@ function MenuScreen({ onStart, totalStars }: { onStart: () => void; totalStars: 
         background: 'rgba(0,0,0,0.3)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         textDecoration: 'none', backdropFilter: 'blur(8px)',
+        zIndex: 3,
       }}>
         <ChevronLeft className="w-6 h-6 text-white" />
       </Link>
 
-      {/* Sun */}
       <div style={{
-        position: 'absolute', top: '14%', left: '50%', transform: 'translateX(-50%)',
-        width: 110, height: 110, borderRadius: '50%',
-        background: 'radial-gradient(circle at 40% 40%, #fffbea, #fde047 50%, #f97316 90%)',
-        boxShadow: '0 0 60px 22px rgba(251,191,36,0.5), 0 0 130px 50px rgba(249,115,22,0.25)',
-        opacity: 0.9,
-      }} />
-
-      <div style={{
-        fontSize: 96, marginBottom: 8,
+        fontSize: 80, marginBottom: 4,
         filter: 'drop-shadow(0 0 30px rgba(249,115,22,0.85)) drop-shadow(0 0 70px rgba(220,38,38,0.4))',
         animation: 'birdHover 2.4s ease-in-out infinite',
         zIndex: 2,
       }}>🦅</div>
       <h1 style={{
-        fontSize: 'clamp(28px, 9vw, 44px)', fontWeight: 900, margin: '0 0 6px',
+        fontSize: 'clamp(26px, 8vw, 40px)', fontWeight: 900, margin: '0 0 6px',
         color: '#fff7d4',
         textShadow: '0 0 28px rgba(251,191,36,0.85), 0 2px 8px rgba(0,0,0,0.7)',
         letterSpacing: 2, textAlign: 'center', whiteSpace: 'nowrap',
         zIndex: 2,
       }}>ELDFÅGELN</h1>
       <p style={{
-        color: 'rgba(255,240,220,0.85)', margin: '12px 0 32px',
-        textAlign: 'center', maxWidth: 320, lineHeight: 1.6, fontSize: 14,
+        color: 'rgba(255,240,220,0.85)', margin: '8px 0 18px',
+        textAlign: 'center', maxWidth: 320, lineHeight: 1.5, fontSize: 13,
         zIndex: 2,
       }}>
-        Eldfågeln skjuter <b style={{ color: '#fdba74' }}>eldbollar</b>!<br />
         Lös <b style={{ color: '#fde047' }}>matteuppgiften</b> för att bygga
-        en mur som skyddar dig.<br />
-        Slå <b style={{ color: '#a78bfa' }}>draken</b> i nivå 5! 🐉
+        en mur som skyddar dig från eldfågelns <b style={{ color: '#fdba74' }}>eldbollar</b>!
       </p>
+
+      {/* Difficulty picker */}
+      <div style={{ width: '100%', maxWidth: 340, marginBottom: 18, zIndex: 2 }}>
+        <div style={{
+          color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 900,
+          letterSpacing: 2, textTransform: 'uppercase', textAlign: 'center', marginBottom: 8,
+        }}>
+          Svårighetsgrad
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {(Object.keys(DIFFICULTIES) as Difficulty[]).map(k => {
+            const d = DIFFICULTIES[k];
+            const active = difficulty === k;
+            return (
+              <button
+                key={k}
+                onClick={() => onDifficultyChange(k)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', padding: '10px 14px', borderRadius: 16,
+                  background: active ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)',
+                  border: active ? '2px solid rgba(253,224,71,0.85)' : '2px solid rgba(255,255,255,0.12)',
+                  boxShadow: active ? '0 4px 18px rgba(253,224,71,0.3)' : 'none',
+                  cursor: 'pointer', color: '#fff',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 28 }}>{d.emoji}</span>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 900 }}>{d.label}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>{d.subtitle}</div>
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 900, color: '#fde047',
+                  background: 'rgba(0,0,0,0.35)', padding: '3px 8px', borderRadius: 999,
+                }}>{d.age}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <button onClick={onStart} style={{
         background: 'linear-gradient(135deg, #ea580c, #b91c1c)',
         border: '1px solid rgba(254,215,170,0.5)',
         borderRadius: 22, color: '#fff',
-        fontWeight: 900, fontSize: 22, padding: '16px 56px',
+        fontWeight: 900, fontSize: 20, padding: '14px 52px',
         cursor: 'pointer', letterSpacing: 4,
         boxShadow: '0 8px 32px rgba(220,38,38,0.6), inset 0 1px 0 rgba(255,255,255,0.3)',
         zIndex: 2,
@@ -589,16 +689,16 @@ function MenuScreen({ onStart, totalStars }: { onStart: () => void; totalStars: 
       </button>
 
       <div style={{
-        marginTop: 28,
+        marginTop: 18,
         background: 'rgba(0,0,0,0.3)',
         border: '1px solid rgba(255,255,255,0.18)',
-        borderRadius: 18, padding: '10px 24px',
+        borderRadius: 18, padding: '8px 20px',
         display: 'flex', alignItems: 'center', gap: 8,
         zIndex: 2,
       }}>
-        <span style={{ fontSize: 22 }}>⭐</span>
-        <span style={{ fontSize: 20, fontWeight: 900, color: '#fde047' }}>{totalStars}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>stjärnor totalt</span>
+        <span style={{ fontSize: 18 }}>⭐</span>
+        <span style={{ fontSize: 18, fontWeight: 900, color: '#fde047' }}>{totalStars}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>stjärnor totalt</span>
       </div>
     </div>
   );
@@ -773,6 +873,7 @@ export default function EldfagelnGame() {
   const { progress, updateMathScore } = useProgress();
 
   const [gs, setGs] = useState<GameState>('menu');
+  const [difficulty, setDifficulty] = useState<Difficulty>('latt');
 
   const [fireballs, setFireballs] = useState<Fireball[]>([]);
   const [question, setQuestion] = useState<MathQ | null>(null);
@@ -781,7 +882,7 @@ export default function EldfagelnGame() {
   const [fxList, setFxList]       = useState<FX[]>([]);
 
   const [score, setScore]   = useState(0);
-  const [lives, setLives]   = useState(INIT_LIVES);
+  const [lives, setLives]   = useState(DIFFICULTIES.latt.lives);
   const [level, setLevel]   = useState(1);
   const [questionsLeft, setQuestionsLeft] = useState(QUESTIONS_PER_LEVEL[0]);
   const [bossHp, setBossHp] = useState(0);
@@ -801,7 +902,7 @@ export default function EldfagelnGame() {
     question: null as MathQ | null,
     wallLayers: 0,
     score: 0,
-    lives: INIT_LIVES,
+    lives: DIFFICULTIES.latt.lives,
     level: 1,
     questionsLeft: QUESTIONS_PER_LEVEL[0],
     bossHp: 0,
@@ -811,7 +912,23 @@ export default function EldfagelnGame() {
     levelClearedAt: 0,
     birdX: 50,
     birdDir: 1,
+    difficulty: 'latt' as Difficulty,
   });
+
+  // Load persisted difficulty
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('eldfageln_difficulty');
+      if (saved === 'mini' || saved === 'latt' || saved === 'svar') {
+        setDifficulty(saved);
+      }
+    } catch {}
+  }, []);
+
+  const updateDifficulty = useCallback((d: Difficulty) => {
+    setDifficulty(d);
+    try { localStorage.setItem('eldfageln_difficulty', d); } catch {}
+  }, []);
 
   const syncFireballs = (fbs: Fireball[]) => {
     stateRef.current.fireballs = fbs;
@@ -839,7 +956,8 @@ export default function EldfagelnGame() {
     const st = stateRef.current;
     const lvl = st.level;
     const isBoss = lvl === TOTAL_LEVELS;
-    const baseDur = FIREBALL_DURATION_BY_LEVEL[Math.min(lvl - 1, FIREBALL_DURATION_BY_LEVEL.length - 1)];
+    const cfg = DIFFICULTIES[st.difficulty];
+    const baseDur = cfg.duration[Math.min(lvl - 1, cfg.duration.length - 1)];
     const startX = st.birdX + (Math.random() - 0.5) * 8;
     const startY = BIRD_Y;
     const f: Fireball = {
@@ -859,12 +977,13 @@ export default function EldfagelnGame() {
 
   const startGame = useCallback(() => {
     idRef.current = 1;
+    const cfg = DIFFICULTIES[difficulty];
     stateRef.current = {
       fireballs: [],
-      question: generateQuestion(1),
+      question: generateQuestion(1, difficulty),
       wallLayers: 0,
       score: 0,
-      lives: INIT_LIVES,
+      lives: cfg.lives,
       level: 1,
       questionsLeft: QUESTIONS_PER_LEVEL[0],
       bossHp: 0,
@@ -874,9 +993,10 @@ export default function EldfagelnGame() {
       levelClearedAt: 0,
       birdX: 50,
       birdDir: 1,
+      difficulty,
     };
     setFireballs([]); setQuestion(stateRef.current.question);
-    setScore(0); setLives(INIT_LIVES); setLevel(1);
+    setScore(0); setLives(cfg.lives); setLevel(1);
     setQuestionsLeft(QUESTIONS_PER_LEVEL[0]);
     setBossHp(0); setBossMaxHp(QUESTIONS_PER_LEVEL[TOTAL_LEVELS - 1]);
     setSlowCharges(SLOW_CHARGES); setSlowed(false);
@@ -885,7 +1005,7 @@ export default function EldfagelnGame() {
     setFxList([]);
     setBirdX(50);
     setGs('playing');
-  }, []);
+  }, [difficulty]);
 
   const goNextLevel = useCallback(() => {
     const st = stateRef.current;
@@ -904,7 +1024,7 @@ export default function EldfagelnGame() {
     st.questionsLeft = QUESTIONS_PER_LEVEL[newLevel - 1];
     st.bossHp = isBoss ? QUESTIONS_PER_LEVEL[newLevel - 1] : 0;
     st.fireballs = [];
-    st.question = generateQuestion(newLevel);
+    st.question = generateQuestion(newLevel, st.difficulty);
     st.wallLayers = 0;
     st.nextSpawnAt = Date.now() + 700;
     st.levelDoneSpawning = false;
@@ -985,7 +1105,7 @@ export default function EldfagelnGame() {
         setQuestion(null);
       } else {
         // Generate next question immediately
-        const nextQ = generateQuestion(st.level);
+        const nextQ = generateQuestion(st.level, st.difficulty);
         st.question = nextQ;
         setTimeout(() => {
           if (stateRef.current.question === nextQ) setQuestion(nextQ);
@@ -996,7 +1116,7 @@ export default function EldfagelnGame() {
       // Wrong: shake + new question (still must answer something)
       setShake(true);
       setTimeout(() => setShake(false), 300);
-      const nextQ = generateQuestion(st.level);
+      const nextQ = generateQuestion(st.level, st.difficulty);
       st.question = nextQ;
       setQuestion(nextQ);
     }
@@ -1022,7 +1142,8 @@ export default function EldfagelnGame() {
       // Spawn new fireballs while level still has objectives left
       if (!st.levelDoneSpawning && Date.now() >= st.nextSpawnAt) {
         const lvl = st.level;
-        const gap = SPAWN_GAP_MS_BY_LEVEL[Math.min(lvl - 1, SPAWN_GAP_MS_BY_LEVEL.length - 1)];
+        const cfg = DIFFICULTIES[st.difficulty];
+        const gap = cfg.spawnGap[Math.min(lvl - 1, cfg.spawnGap.length - 1)];
         st.nextSpawnAt = Date.now() + gap;
         spawnFireball();
       }
@@ -1125,7 +1246,7 @@ export default function EldfagelnGame() {
     return () => clearInterval(id);
   }, [gs, slowed, endGame, spawnFireball, progress.mathHighScore, updateMathScore]);
 
-  if (gs === 'menu') return <MenuScreen onStart={startGame} totalStars={progress.totalStars} />;
+  if (gs === 'menu') return <MenuScreen onStart={startGame} totalStars={progress.totalStars} difficulty={difficulty} onDifficultyChange={updateDifficulty} />;
   if (gs === 'gameover') return <GameOverScreen score={score} level={level} starsEarned={endStars} onRestart={startGame} onMenu={() => setGs('menu')} />;
   if (gs === 'win') return <WinScreen score={score} starsEarned={endStars} onPlayAgain={startGame} onMenu={() => setGs('menu')} />;
   if (gs === 'levelClear') return <LevelClearScreen level={level} score={score} onNext={goNextLevel} />;
@@ -1166,7 +1287,7 @@ export default function EldfagelnGame() {
           {isBoss ? '🐉 DRAKBOSS' : '🦅 ELDFÅGELN'}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
-          {[0, 1, 2].map(i => (
+          {Array.from({ length: DIFFICULTIES[difficulty].lives }).map((_, i) => (
             <span key={i} style={{
               fontSize: 18, opacity: i < lives ? 1 : 0.18,
               filter: i < lives ? 'drop-shadow(0 0 6px rgba(248,113,113,0.7))' : 'grayscale(1)',
