@@ -21,6 +21,7 @@ interface Fireball {
   state: 'flying' | 'blocked' | 'hit' | 'done';
   size: number;
   trail: { x: number; y: number; born: number }[];
+  isBoss: boolean;
 }
 
 interface MathQ {
@@ -51,7 +52,15 @@ const INIT_LIVES = 3;
 const SLOW_CHARGES = 3;
 const SLOW_FACTOR = 0.4;
 const SLOW_MS = 2500;
-const ROUND_GAP_MS = 900;
+
+// How often fireballs spawn (ms). Lower = faster pace.
+const SPAWN_GAP_MS_BY_LEVEL = [2200, 1900, 1700, 1500, 1400];
+// Delay after answering before next question appears (ms).
+const NEXT_QUESTION_DELAY_MS = 120;
+// Max wall layers shown / stackable.
+const MAX_WALL_LAYERS = 6;
+// Wall Y position grows by this amount per stacked layer (visual only).
+const WALL_LAYER_HEIGHT = 22;
 
 const STARS = Array.from({ length: 40 }, (_, i) => ({
   id: i,
@@ -345,40 +354,49 @@ function Player({ lives, hit }: { lives: number; hit: boolean }) {
   );
 }
 
-function Wall({ state }: { state: 'hidden' | 'rising' | 'up' | 'falling' }) {
-  if (state === 'hidden') return null;
-  const tx =
-    state === 'rising' ? 'translateY(110%)' :
-    state === 'up'     ? 'translateY(0)' :
-                         'translateY(110%) rotate(8deg)';
+function Wall({ layers, breaking }: { layers: number; breaking: boolean }) {
+  if (layers <= 0) return null;
+  const visibleLayers = Math.min(layers, MAX_WALL_LAYERS);
   return (
     <div style={{
       position: 'absolute', bottom: `${WALL_Y}%`, left: `${PLAYER_X}%`,
       transform: 'translate(-50%, 50%)', pointerEvents: 'none',
-      transition: 'transform 0.28s cubic-bezier(0.34,1.4,0.64,1), opacity 0.4s',
-      opacity: state === 'falling' ? 0 : 1,
     }}>
       <div style={{
-        transform: tx,
-        transition: 'transform 0.3s cubic-bezier(0.34,1.5,0.64,1)',
-        display: 'flex', flexDirection: 'column', gap: 2,
+        display: 'flex', flexDirection: 'column-reverse', gap: 2,
       }}>
-        {[0, 1, 2].map(row => (
-          <div key={row} style={{
-            display: 'flex', gap: 2,
-            paddingLeft: row % 2 === 0 ? 0 : 14,
-          }}>
-            {Array.from({ length: row % 2 === 0 ? 5 : 4 }).map((_, i) => (
-              <div key={i} style={{
-                width: 28, height: 18,
-                background: 'linear-gradient(to bottom, #6b3a2a, #3a1d18)',
-                borderRadius: 3,
-                border: '1px solid #2a1410',
-                boxShadow: 'inset 0 1px 0 rgba(255,180,140,0.25), inset 0 -2px 2px rgba(0,0,0,0.4)',
-              }} />
-            ))}
-          </div>
-        ))}
+        {Array.from({ length: visibleLayers }).map((_, layerIdx) => {
+          const isTop = layerIdx === visibleLayers - 1;
+          return (
+            <div
+              key={layerIdx}
+              style={{
+                display: 'flex', flexDirection: 'column', gap: 2,
+                animation: isTop
+                  ? (breaking ? 'wallBreak 0.32s ease-out forwards' : 'wallRise 0.3s cubic-bezier(0.34,1.5,0.64,1)')
+                  : undefined,
+                transformOrigin: 'center bottom',
+              }}
+            >
+              {[0, 1].map(row => (
+                <div key={row} style={{
+                  display: 'flex', gap: 2,
+                  paddingLeft: (layerIdx + row) % 2 === 0 ? 0 : 14,
+                }}>
+                  {Array.from({ length: (layerIdx + row) % 2 === 0 ? 5 : 4 }).map((_, i) => (
+                    <div key={i} style={{
+                      width: 28, height: 18,
+                      background: 'linear-gradient(to bottom, #6b3a2a, #3a1d18)',
+                      borderRadius: 3,
+                      border: '1px solid #2a1410',
+                      boxShadow: 'inset 0 1px 0 rgba(255,180,140,0.25), inset 0 -2px 2px rgba(0,0,0,0.4)',
+                    }} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -701,9 +719,10 @@ export default function EldfagelnGame() {
 
   const [gs, setGs] = useState<GameState>('menu');
 
-  const [fireball, setFireball] = useState<Fireball | null>(null);
+  const [fireballs, setFireballs] = useState<Fireball[]>([]);
   const [question, setQuestion] = useState<MathQ | null>(null);
-  const [wallState, setWallState] = useState<'hidden' | 'rising' | 'up' | 'falling'>('hidden');
+  const [wallLayers, setWallLayers] = useState(0);
+  const [wallBreaking, setWallBreaking] = useState(false);
   const [fxList, setFxList]       = useState<FX[]>([]);
 
   const [score, setScore]   = useState(0);
@@ -723,29 +742,35 @@ export default function EldfagelnGame() {
 
   const idRef = useRef(1);
   const stateRef = useRef({
-    fireball: null as Fireball | null,
+    fireballs: [] as Fireball[],
     question: null as MathQ | null,
+    wallLayers: 0,
     score: 0,
     lives: INIT_LIVES,
     level: 1,
     questionsLeft: QUESTIONS_PER_LEVEL[0],
     bossHp: 0,
     slowUntil: 0,
-    answered: false,
-    nextRoundAt: 0,
+    nextSpawnAt: 0,
+    levelDoneSpawning: false,
     levelClearedAt: 0,
     birdX: 50,
     birdDir: 1,
   });
 
-  const syncFireball = (f: Fireball | null) => {
-    stateRef.current.fireball = f;
-    setFireball(f);
+  const syncFireballs = (fbs: Fireball[]) => {
+    stateRef.current.fireballs = fbs;
+    setFireballs(fbs);
   };
 
   const syncQuestion = (q: MathQ | null) => {
     stateRef.current.question = q;
     setQuestion(q);
+  };
+
+  const syncWallLayers = (n: number) => {
+    stateRef.current.wallLayers = n;
+    setWallLayers(n);
   };
 
   const pushFx = (x: number, y: number, kind: FX['kind'], vx?: number, vy?: number) => {
@@ -754,13 +779,12 @@ export default function EldfagelnGame() {
     setTimeout(() => setFxList(prev => prev.filter(f => f.id !== fx.id)), 750);
   };
 
-  const startNextRound = useCallback(() => {
+  const spawnFireball = useCallback(() => {
     const st = stateRef.current;
     const lvl = st.level;
-    const q = generateQuestion(lvl);
     const isBoss = lvl === TOTAL_LEVELS;
     const baseDur = isBoss ? 3.4 : Math.max(2.6, 5.2 - (lvl - 1) * 0.55);
-    const startX = st.birdX;
+    const startX = st.birdX + (Math.random() - 0.5) * 8;
     const startY = BIRD_Y;
     const f: Fireball = {
       id: idRef.current++,
@@ -772,42 +796,40 @@ export default function EldfagelnGame() {
       state: 'flying',
       size: isBoss ? 50 : 40,
       trail: [],
+      isBoss,
     };
-    syncQuestion(q);
-    syncFireball(f);
-    st.answered = false;
-    setWallState('hidden');
+    syncFireballs([...st.fireballs, f]);
   }, []);
 
   const startGame = useCallback(() => {
     idRef.current = 1;
     stateRef.current = {
-      fireball: null,
-      question: null,
+      fireballs: [],
+      question: generateQuestion(1),
+      wallLayers: 0,
       score: 0,
       lives: INIT_LIVES,
       level: 1,
       questionsLeft: QUESTIONS_PER_LEVEL[0],
       bossHp: 0,
       slowUntil: 0,
-      answered: false,
-      nextRoundAt: 0,
+      nextSpawnAt: Date.now() + 700,
+      levelDoneSpawning: false,
       levelClearedAt: 0,
       birdX: 50,
       birdDir: 1,
     };
-    setFireball(null); setQuestion(null);
+    setFireballs([]); setQuestion(stateRef.current.question);
     setScore(0); setLives(INIT_LIVES); setLevel(1);
     setQuestionsLeft(QUESTIONS_PER_LEVEL[0]);
     setBossHp(0); setBossMaxHp(QUESTIONS_PER_LEVEL[TOTAL_LEVELS - 1]);
     setSlowCharges(SLOW_CHARGES); setSlowed(false);
     setShake(false); setFlashRed(false); setFeedback(null);
-    setWallState('hidden');
+    setWallLayers(0); setWallBreaking(false);
     setFxList([]);
     setBirdX(50);
     setGs('playing');
-    setTimeout(startNextRound, 600);
-  }, [startNextRound]);
+  }, []);
 
   const goNextLevel = useCallback(() => {
     const st = stateRef.current;
@@ -825,16 +847,21 @@ export default function EldfagelnGame() {
     st.level = newLevel;
     st.questionsLeft = QUESTIONS_PER_LEVEL[newLevel - 1];
     st.bossHp = isBoss ? QUESTIONS_PER_LEVEL[newLevel - 1] : 0;
-    st.fireball = null; st.question = null;
+    st.fireballs = [];
+    st.question = generateQuestion(newLevel);
+    st.wallLayers = 0;
+    st.nextSpawnAt = Date.now() + 700;
+    st.levelDoneSpawning = false;
     setLevel(newLevel);
     setQuestionsLeft(QUESTIONS_PER_LEVEL[newLevel - 1]);
     setBossHp(isBoss ? QUESTIONS_PER_LEVEL[newLevel - 1] : 0);
     setBossMaxHp(QUESTIONS_PER_LEVEL[newLevel - 1]);
-    setFireball(null); setQuestion(null);
-    setWallState('hidden');
+    setFireballs([]);
+    setQuestion(st.question);
+    setWallLayers(0);
+    setWallBreaking(false);
     setGs('playing');
-    setTimeout(startNextRound, 600);
-  }, [progress.mathHighScore, updateMathScore, startNextRound]);
+  }, [progress.mathHighScore, updateMathScore]);
 
   const endGame = useCallback(() => {
     const finalScore = stateRef.current.score;
@@ -859,24 +886,20 @@ export default function EldfagelnGame() {
   const onAnswer = useCallback((n: number) => {
     const st = stateRef.current;
     if (gs !== 'playing') return;
-    if (st.answered) return;
-    if (!st.fireball || !st.question) return;
-    if (st.fireball.state !== 'flying') return;
-
-    st.answered = true;
+    if (!st.question) return;
 
     if (n === st.question.answer) {
-      // Correct: build wall, fireball will explode at wall
-      pushFx(st.fireball.x, WALL_Y + 4, 'block');
+      // Correct: stack a wall layer, score
+      pushFx(PLAYER_X, WALL_Y + 4, 'block');
       // sparks
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 5; i++) {
         const ang = Math.random() * Math.PI * 2;
-        pushFx(st.fireball.x, WALL_Y + 4, 'spark', Math.cos(ang) * 0.6, Math.sin(ang) * 0.6);
+        pushFx(PLAYER_X, WALL_Y + 4, 'spark', Math.cos(ang) * 0.6, Math.sin(ang) * 0.6);
       }
       // stars flying to HUD
-      for (let i = 0; i < 3; i++) {
-        pushFx(st.fireball.x + (Math.random() - 0.5) * 8, WALL_Y + 4, 'star',
-          (8 - st.fireball.x) / 60, (90 - WALL_Y) / 80);
+      for (let i = 0; i < 2; i++) {
+        pushFx(PLAYER_X + (Math.random() - 0.5) * 8, WALL_Y + 4, 'star',
+          (8 - PLAYER_X) / 60, (90 - WALL_Y) / 80);
       }
 
       st.score += 1;
@@ -890,18 +913,35 @@ export default function EldfagelnGame() {
       st.questionsLeft = Math.max(0, st.questionsLeft - 1);
       setQuestionsLeft(st.questionsLeft);
 
-      // Wall raise + redirect fireball
-      setWallState('rising');
-      st.fireball.endY = WALL_Y;
-      st.fireball.endX = PLAYER_X;
-      // Stop fireball at wall
-      st.fireball.state = 'blocked';
+      // Stack wall layer (capped)
+      const newLayers = Math.min(MAX_WALL_LAYERS, st.wallLayers + 1);
+      syncWallLayers(newLayers);
+
       setFeedback('block');
-      setTimeout(() => setFeedback(null), 400);
+      setTimeout(() => setFeedback(null), 300);
+
+      // Stop spawning new fireballs once level objective met
+      const cleared = isBoss ? st.bossHp <= 0 : st.questionsLeft <= 0;
+      if (cleared) {
+        st.levelDoneSpawning = true;
+        st.question = null;
+        setQuestion(null);
+      } else {
+        // Generate next question immediately
+        const nextQ = generateQuestion(st.level);
+        st.question = nextQ;
+        setTimeout(() => {
+          if (stateRef.current.question === nextQ) setQuestion(nextQ);
+        }, NEXT_QUESTION_DELAY_MS);
+        setQuestion(nextQ);
+      }
     } else {
-      // Wrong: fireball continues; small shake + miss feedback
+      // Wrong: shake + new question (still must answer something)
       setShake(true);
-      setTimeout(() => setShake(false), 350);
+      setTimeout(() => setShake(false), 300);
+      const nextQ = generateQuestion(st.level);
+      st.question = nextQ;
+      setQuestion(nextQ);
     }
   }, [gs]);
 
@@ -922,92 +962,102 @@ export default function EldfagelnGame() {
       // Slow indicator off
       if (slowed && Date.now() >= st.slowUntil) setSlowed(false);
 
-      // Update fireball
-      const fb = st.fireball;
-      if (fb) {
-        if (fb.state === 'flying' || fb.state === 'blocked') {
-          fb.elapsed += dt * slowFactor;
-          const t = Math.min(1, fb.elapsed / fb.duration);
-          // Parabolic arc: linear interpolation in X, but Y dips upward then comes back
-          const arc = 14;  // peak above midpoint of straight line
-          const midY = (fb.startY + fb.endY) / 2;
-          const lineY = fb.startY + (fb.endY - fb.startY) * t;
-          // Offset down toward target with a small over-arc on the way
-          const overshoot = -arc * 4 * t * (1 - t);
-          fb.x = fb.startX + (fb.endX - fb.startX) * t;
-          fb.y = lineY + overshoot;
+      // Spawn new fireballs while level still has objectives left
+      if (!st.levelDoneSpawning && Date.now() >= st.nextSpawnAt) {
+        const lvl = st.level;
+        const gap = SPAWN_GAP_MS_BY_LEVEL[Math.min(lvl - 1, SPAWN_GAP_MS_BY_LEVEL.length - 1)];
+        st.nextSpawnAt = Date.now() + gap;
+        spawnFireball();
+      }
 
-          // Trail
-          if (Math.random() < 0.65) {
-            fb.trail.push({ x: fb.x, y: fb.y, born: Date.now() });
-            if (fb.trail.length > 10) fb.trail.shift();
-          }
-          // Cleanup old trail
-          fb.trail = fb.trail.filter(t => Date.now() - t.born < 400);
+      // Update all fireballs
+      let mutated = false;
+      let livesLost = 0;
+      let wallBreakEvents = 0;
+      for (const fb of st.fireballs) {
+        if (fb.state !== 'flying') continue;
+        fb.elapsed += dt * slowFactor;
+        const t = Math.min(1, fb.elapsed / fb.duration);
+        const arc = 14;
+        const lineY = fb.startY + (fb.endY - fb.startY) * t;
+        const overshoot = -arc * 4 * t * (1 - t);
+        fb.x = fb.startX + (fb.endX - fb.startX) * t;
+        fb.y = lineY + overshoot;
+        mutated = true;
 
-          if (t >= 1) {
-            if (fb.state === 'blocked') {
-              fb.state = 'done';
-              setWallState('up');
-              // Crumble shortly after
-              setTimeout(() => setWallState('falling'), 380);
-              setTimeout(() => setWallState('hidden'), 760);
-            } else {
-              // Hit player
-              fb.state = 'done';
-              pushFx(PLAYER_X, PLAYER_Y + 8, 'hit');
-              for (let i = 0; i < 5; i++) pushFx(PLAYER_X, PLAYER_Y + 4, 'smoke');
-              st.lives = Math.max(0, st.lives - 1);
-              setLives(st.lives);
-              setShake(true); setFlashRed(true);
-              setFeedback('hit');
-              setTimeout(() => { setShake(false); setFlashRed(false); setFeedback(null); }, 500);
-              if (st.lives <= 0) {
-                endGame();
-                return;
-              }
-              st.questionsLeft = Math.max(0, st.questionsLeft - 1);
-              setQuestionsLeft(st.questionsLeft);
-              const isBoss = st.level === TOTAL_LEVELS;
-              if (isBoss) {
-                // Boss: missing doesn't reduce HP, but life lost
-              }
+        // Trail
+        if (Math.random() < 0.65) {
+          fb.trail.push({ x: fb.x, y: fb.y, born: Date.now() });
+          if (fb.trail.length > 10) fb.trail.shift();
+        }
+        fb.trail = fb.trail.filter(p => Date.now() - p.born < 400);
+
+        if (t >= 1) {
+          if (st.wallLayers > 0) {
+            // Block: consume top wall layer
+            fb.state = 'blocked';
+            wallBreakEvents++;
+            pushFx(fb.x, WALL_Y + 4, 'block');
+            for (let i = 0; i < 5; i++) {
+              const ang = Math.random() * Math.PI * 2;
+              pushFx(fb.x, WALL_Y + 4, 'spark', Math.cos(ang) * 0.6, Math.sin(ang) * 0.6);
             }
-            // Schedule next round / level change
-            st.nextRoundAt = Date.now() + ROUND_GAP_MS;
-            syncFireball(fb);
+            st.wallLayers = Math.max(0, st.wallLayers - 1);
           } else {
-            syncFireball(fb);
+            // Hit player
+            fb.state = 'hit';
+            pushFx(PLAYER_X, PLAYER_Y + 8, 'hit');
+            for (let i = 0; i < 5; i++) pushFx(PLAYER_X, PLAYER_Y + 4, 'smoke');
+            livesLost++;
           }
         }
       }
 
-      // Round transition
-      if (!st.fireball || st.fireball.state === 'done') {
-        if (st.nextRoundAt > 0 && Date.now() >= st.nextRoundAt) {
-          st.nextRoundAt = 0;
-          syncFireball(null);
-          syncQuestion(null);
+      // Apply wall break visuals
+      if (wallBreakEvents > 0) {
+        setWallLayers(st.wallLayers);
+        setWallBreaking(true);
+        setTimeout(() => setWallBreaking(false), 320);
+      }
 
-          const isBoss = st.level === TOTAL_LEVELS;
-          const cleared = isBoss ? st.bossHp <= 0 : st.questionsLeft <= 0;
+      // Apply life loss
+      if (livesLost > 0) {
+        st.lives = Math.max(0, st.lives - livesLost);
+        setLives(st.lives);
+        setShake(true); setFlashRed(true);
+        setFeedback('hit');
+        setTimeout(() => { setShake(false); setFlashRed(false); setFeedback(null); }, 500);
+        if (st.lives <= 0) {
+          endGame();
+          return;
+        }
+      }
 
-          if (cleared) {
-            // Level complete
-            setGs(st.level === TOTAL_LEVELS ? 'win' : 'levelClear');
-            if (st.level === TOTAL_LEVELS) {
-              const earned = Math.max(0, Math.floor(st.score / 5) - Math.floor(progress.mathHighScore / 5));
-              updateMathScore(st.score);
-              setEndStars(earned);
-            }
-          } else {
-            startNextRound();
-          }
+      // Cleanup landed fireballs after a brief delay so visuals settle
+      const stillActive = st.fireballs.filter(f => f.state === 'flying');
+      if (stillActive.length !== st.fireballs.length) {
+        st.fireballs = stillActive;
+        setFireballs(stillActive);
+      } else if (mutated) {
+        setFireballs([...st.fireballs]);
+      }
+
+      // Level clear check: done spawning + no more fireballs in flight
+      if (st.levelDoneSpawning && st.fireballs.length === 0 && st.levelClearedAt === 0) {
+        st.levelClearedAt = Date.now();
+        const isLast = st.level === TOTAL_LEVELS;
+        if (isLast) {
+          const earned = Math.max(0, Math.floor(st.score / 5) - Math.floor(progress.mathHighScore / 5));
+          updateMathScore(st.score);
+          setEndStars(earned);
+          setGs('win');
+        } else {
+          setGs('levelClear');
         }
       }
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [gs, slowed, endGame, startNextRound, progress.mathHighScore, updateMathScore]);
+  }, [gs, slowed, endGame, spawnFireball, progress.mathHighScore, updateMathScore]);
 
   if (gs === 'menu') return <MenuScreen onStart={startGame} totalStars={progress.totalStars} />;
   if (gs === 'gameover') return <GameOverScreen score={score} level={level} starsEarned={endStars} onRestart={startGame} onMenu={() => setGs('menu')} />;
@@ -1087,17 +1137,29 @@ export default function EldfagelnGame() {
           }}>
             ⭐ {score}
           </div>
-          <div style={{
-            color: '#fef3c7', fontWeight: 800, fontSize: 14,
-            background: 'rgba(0,0,0,0.45)', padding: '4px 12px', borderRadius: 12,
-            border: '1px solid rgba(254,215,170,0.3)',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <span>NIVÅ {level}/{TOTAL_LEVELS}</span>
-            {!isBoss && <>
-              <span style={{ color: 'rgba(255,255,255,0.4)' }}>·</span>
-              <span>{QUESTIONS_PER_LEVEL[level - 1] - questionsLeft + 1}/{QUESTIONS_PER_LEVEL[level - 1]}</span>
-            </>}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+            <div style={{
+              color: '#fef3c7', fontWeight: 800, fontSize: 14,
+              background: 'rgba(0,0,0,0.45)', padding: '4px 12px', borderRadius: 12,
+              border: '1px solid rgba(254,215,170,0.3)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span>NIVÅ {level}/{TOTAL_LEVELS}</span>
+              {!isBoss && <>
+                <span style={{ color: 'rgba(255,255,255,0.4)' }}>·</span>
+                <span>{Math.min(QUESTIONS_PER_LEVEL[level - 1], QUESTIONS_PER_LEVEL[level - 1] - questionsLeft + 1)}/{QUESTIONS_PER_LEVEL[level - 1]}</span>
+              </>}
+            </div>
+            {wallLayers > 0 && (
+              <div style={{
+                color: '#fde68a', fontWeight: 800, fontSize: 13,
+                background: 'rgba(0,0,0,0.45)', padding: '3px 10px', borderRadius: 10,
+                border: '1px solid rgba(180,120,80,0.4)',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+                <span>🧱</span><span>×{wallLayers}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1130,13 +1192,13 @@ export default function EldfagelnGame() {
         )}
 
         {/* Bird */}
-        <BirdEnemy x={birdX} y={BIRD_Y} windup={!!fireball && fireball.state === 'flying' && fireball.elapsed < 0.18} isBoss={isBoss} />
+        <BirdEnemy x={birdX} y={BIRD_Y} windup={fireballs.some(fb => fb.state === 'flying' && fb.elapsed < 0.18)} isBoss={isBoss} />
 
         {/* Wall */}
-        <Wall state={wallState} />
+        <Wall layers={wallLayers} breaking={wallBreaking} />
 
-        {/* Fireball */}
-        {fireball && fireball.state !== 'done' && <FireballEl f={fireball} slowed={slowed} />}
+        {/* Fireballs */}
+        {fireballs.map(fb => fb.state !== 'done' && <FireballEl key={fb.id} f={fb} slowed={slowed} />)}
 
         {/* Player */}
         <Player lives={lives} hit={feedback === 'hit'} />
@@ -1217,7 +1279,7 @@ export default function EldfagelnGame() {
         }}>
           {Array.from({ length: 4 }).map((_, i) => {
             const c = question?.choices[i];
-            const disabled = c == null || !question || !fireball || stateRef.current.answered;
+            const disabled = c == null || !question;
             return (
               <button
                 key={`slot-${i}`}
@@ -1295,6 +1357,16 @@ export default function EldfagelnGame() {
           40%     { transform: translateX(8px)  rotate(0.4deg); }
           60%     { transform: translateX(-5px); }
           80%     { transform: translateX(5px); }
+        }
+        @keyframes wallRise {
+          0%   { transform: translateY(110%); opacity: 0; }
+          60%  { transform: translateY(-6%); opacity: 1; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes wallBreak {
+          0%   { transform: translateY(0) rotate(0); opacity: 1; }
+          40%  { transform: translateY(-4px) rotate(-3deg); opacity: 1; }
+          100% { transform: translateY(20px) rotate(8deg); opacity: 0; }
         }
         .eldShake { animation: eldshake 0.45s ease-in-out; }
       `}</style>
