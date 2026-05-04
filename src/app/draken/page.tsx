@@ -36,7 +36,7 @@ const ISLANDS: Island[] = [
     desc: 'Poppa rätt antal!',
     color: 'from-pink-300 to-rose-400',
     ring: 'ring-pink-200',
-    position: { top: '8%', left: '18%' },
+    position: { top: '8%', left: '30%' },
   },
   {
     level: 2,
@@ -45,7 +45,7 @@ const ISLANDS: Island[] = [
     desc: 'Hitta bokstaven!',
     color: 'from-emerald-300 to-green-500',
     ring: 'ring-emerald-200',
-    position: { top: '22%', left: '62%' },
+    position: { top: '23%', left: '70%' },
   },
   {
     level: 3,
@@ -54,7 +54,7 @@ const ISLANDS: Island[] = [
     desc: 'Räkna djuren!',
     color: 'from-sky-300 to-cyan-500',
     ring: 'ring-sky-200',
-    position: { top: '40%', left: '14%' },
+    position: { top: '40%', left: '30%' },
   },
   {
     level: 4,
@@ -63,7 +63,7 @@ const ISLANDS: Island[] = [
     desc: 'Matcha former!',
     color: 'from-violet-300 to-purple-500',
     ring: 'ring-violet-200',
-    position: { top: '54%', left: '60%' },
+    position: { top: '55%', left: '70%' },
   },
   {
     level: 5,
@@ -72,7 +72,7 @@ const ISLANDS: Island[] = [
     desc: 'Första bokstaven!',
     color: 'from-amber-300 to-orange-500',
     ring: 'ring-amber-200',
-    position: { top: '70%', left: '20%' },
+    position: { top: '72%', left: '30%' },
   },
   {
     level: 6,
@@ -81,7 +81,7 @@ const ISLANDS: Island[] = [
     desc: 'Sista utmaningen!',
     color: 'from-fuchsia-400 to-purple-600',
     ring: 'ring-fuchsia-200',
-    position: { top: '84%', left: '58%' },
+    position: { top: '87%', left: '70%' },
   },
 ];
 
@@ -134,7 +134,7 @@ export default function DrakenMapPage() {
       {/* Hero */}
       <div className="relative px-4 pt-4 pb-2 text-center">
         <div className="flex justify-center mb-2">
-          <Glittra size={110} reward={progress.reward} />
+          <Glittra size={110} equipped={progress.equipped} />
         </div>
         <p className="text-base font-black text-purple-900/90 drop-shadow-sm max-w-xs mx-auto">
           Hej! Jag är Glittra 💜
@@ -170,11 +170,11 @@ export default function DrakenMapPage() {
       </div>
 
       {/* Island map */}
-      <div className="relative mx-auto mt-4 w-full max-w-md">
+      <div className="relative mx-auto mt-4 w-full max-w-md px-2">
         <div
           className="relative w-full"
           style={{
-            paddingBottom: '140%',
+            paddingBottom: '150%',
           }}
         >
           {/* Decorative clouds */}
@@ -186,11 +186,11 @@ export default function DrakenMapPage() {
           {/* Connecting dotted path */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
-            viewBox="0 0 100 140"
+            viewBox="0 0 100 150"
             preserveAspectRatio="none"
           >
             <path
-              d="M 26,16 Q 50,22 70,30 Q 80,38 22,48 Q 10,55 68,62 Q 80,70 28,78 Q 18,84 66,92"
+              d="M 30,12 Q 50,18 70,34 Q 78,46 30,60 Q 22,68 70,82 Q 78,96 30,108 Q 22,120 70,130"
               stroke="#fff"
               strokeWidth="0.8"
               strokeDasharray="2,2"
@@ -213,7 +213,7 @@ export default function DrakenMapPage() {
                 {unlocked ? (
                   <Link
                     href={`/draken/niva${island.level}`}
-                    className={`relative flex flex-col items-center justify-center w-32 h-32 rounded-[40%_60%_55%_45%/55%_45%_60%_40%] bg-gradient-to-br ${island.color} shadow-xl ring-4 ${island.ring} active:scale-95 transition-transform`}
+                    className={`relative flex flex-col items-center justify-center w-28 h-28 rounded-[40%_60%_55%_45%/55%_45%_60%_40%] bg-gradient-to-br ${island.color} shadow-xl ring-4 ${island.ring} active:scale-95 transition-transform`}
                     style={{
                       boxShadow: `0 12px 32px -8px rgba(168,85,247,0.45), 0 1px 0 rgba(255,255,255,0.4) inset`,
                     }}
@@ -238,7 +238,7 @@ export default function DrakenMapPage() {
                   </Link>
                 ) : (
                   <div
-                    className="relative flex flex-col items-center justify-center w-32 h-32 rounded-[40%_60%_55%_45%/55%_45%_60%_40%] bg-gradient-to-br from-gray-300 to-gray-500 shadow-md opacity-70"
+                    className="relative flex flex-col items-center justify-center w-28 h-28 rounded-[40%_60%_55%_45%/55%_45%_60%_40%] bg-gradient-to-br from-gray-300 to-gray-500 shadow-md opacity-70"
                   >
                     <div className="absolute -top-3 -left-2 bg-white text-gray-500 font-black text-sm w-9 h-9 rounded-full flex items-center justify-center shadow-md ring-2 ring-gray-200">
                       {island.level}

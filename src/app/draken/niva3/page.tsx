@@ -19,7 +19,8 @@ const ANIMALS = [
   { emoji: '🦦', name: 'uttrar', single: 'utter' },
 ];
 
-const NUMBER_WORDS = ['noll', 'ett', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta'];
+// All animals listed below are en-words, so we count "en", "två", "tre"...
+const NUMBER_WORDS_EN = ['noll', 'en', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta'];
 
 const ROUNDS = 5;
 
@@ -35,11 +36,12 @@ function shuffle<T>(a: T[]): T[] {
 function buildRound() {
   const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
   const count = 1 + Math.floor(Math.random() * 6);
-  const wrong1 = Math.max(0, count + (Math.random() < 0.5 ? -1 : 1));
-  let wrong2 = count + (Math.random() < 0.5 ? -2 : 2);
-  if (wrong2 < 0) wrong2 = count + 2;
-  if (wrong2 === count || wrong2 === wrong1) wrong2 = count + 3;
-  const choices = shuffle([count, wrong1, wrong2]);
+  const set = new Set<number>([count]);
+  for (let off = 1; set.size < 3 && off < 8; off++) {
+    if (count - off >= 1) set.add(count - off);
+    if (count + off <= 8) set.add(count + off);
+  }
+  const choices = shuffle(Array.from(set).slice(0, 3));
   return { animal, count, choices };
 }
 
@@ -57,7 +59,7 @@ export default function Niva3() {
   useEffect(() => {
     if (hasIntro) return;
     const t = setTimeout(() => {
-      speak(`Räkna ${data.animal.name}.`);
+      speak(`Räkna alla ${data.animal.name}!`);
       setHasIntro(true);
     }, 350);
     return () => clearTimeout(t);
@@ -95,7 +97,7 @@ export default function Niva3() {
       setPicked(n);
       hapticNotification('success');
       if (n <= 5) unlockNumber(n);
-      speak(`Ja! ${NUMBER_WORDS[n]} ${n === 1 ? data.animal.single : data.animal.name}!`);
+      speak(`Ja! ${NUMBER_WORDS_EN[n]} ${n === 1 ? data.animal.single : data.animal.name}!`);
       setTimeout(() => next(), 1700);
     } else {
       setWrongPick(n);
@@ -127,7 +129,7 @@ export default function Niva3() {
           <div className="flex-1">
             <div className="text-sm font-bold text-purple-700/70">Nivå 3 · Runda {round + 1}/{ROUNDS}</div>
             <button
-              onClick={() => speak(`Räkna ${data.animal.name}!`)}
+              onClick={() => speak(`Hur många ${data.animal.name} ser du?`)}
               className="text-left text-xl font-black text-sky-700 active:scale-95 transition-transform"
             >
               Hur många {data.animal.name}? {data.animal.emoji} 🔊
@@ -180,7 +182,7 @@ export default function Niva3() {
                 }`}
               >
                 <div className="text-5xl">{n}</div>
-                <div className="text-xs font-bold opacity-70 mt-1">{NUMBER_WORDS[n] ?? n}</div>
+                <div className="text-xs font-bold opacity-70 mt-1">{NUMBER_WORDS_EN[n] ?? n}</div>
               </button>
             );
           })}

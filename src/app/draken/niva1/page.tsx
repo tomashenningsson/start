@@ -19,7 +19,12 @@ const BALLOON_COLORS = [
   'from-rose-300 to-red-500',
 ];
 
-const NUMBER_WORDS = ['noll', 'ett', 'två', 'tre', 'fyra', 'fem'];
+// "ballong" is an en-word, so 1 = "en ballong"
+const NUMBER_WORDS_EN = ['noll', 'en', 'två', 'tre', 'fyra', 'fem'];
+
+function ballongPhrase(n: number) {
+  return n === 1 ? 'en ballong' : `${NUMBER_WORDS_EN[n]} ballonger`;
+}
 
 const ROUNDS = 4;
 
@@ -69,7 +74,7 @@ export default function Niva1() {
   useEffect(() => {
     if (introSpoken) return;
     const t = setTimeout(() => {
-      speak(`Poppa ${NUMBER_WORDS[goal]} ballonger!`);
+      speak(`Poppa ${ballongPhrase(goal)}!`);
       setIntroSpoken(true);
     }, 350);
     return () => clearTimeout(t);
@@ -93,7 +98,7 @@ export default function Niva1() {
     setBalloons(makeBalloons(next));
     setPopped(0);
     setRound(r => r + 1);
-    setTimeout(() => speak(`Poppa ${NUMBER_WORDS[next]} ballonger!`), 250);
+    setTimeout(() => speak(`Poppa ${ballongPhrase(next)}!`), 250);
   };
 
   const finish = () => {
@@ -109,7 +114,7 @@ export default function Niva1() {
       setShake(id);
       setMistakes(m => m + 1);
       hapticImpact('light');
-      speak('Det räcker, du har redan poppat tillräckligt!');
+      speak('Det räcker! Du har redan poppat tillräckligt.');
       setTimeout(() => setShake(null), 500);
       return;
     }
@@ -155,10 +160,10 @@ export default function Niva1() {
           <div className="flex-1">
             <div className="text-sm font-bold text-purple-700/70">Nivå 1 · Runda {round + 1}/{ROUNDS}</div>
             <button
-              onClick={() => speak(`Poppa ${NUMBER_WORDS[goal]} ballonger!`)}
+              onClick={() => speak(`Poppa ${ballongPhrase(goal)}!`)}
               className="text-left text-xl font-black text-purple-900 active:scale-95 transition-transform"
             >
-              Poppa {goal} ballonger! 🔊
+              Poppa {goal === 1 ? 'en ballong' : `${goal} ballonger`}! 🔊
             </button>
           </div>
         </div>

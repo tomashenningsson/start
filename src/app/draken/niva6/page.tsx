@@ -33,7 +33,12 @@ function buildChallenges(): Challenge[] {
   // Siffra: identify a number
   {
     const correct = 1 + Math.floor(Math.random() * 5);
-    const choices = shuffle([String(correct), String((correct % 5) + 1), String(((correct + 1) % 5) + 1)]);
+    const set = new Set<number>([correct]);
+    for (let off = 1; set.size < 3 && off < 6; off++) {
+      if (correct - off >= 1) set.add(correct - off);
+      if (correct + off <= 5) set.add(correct + off);
+    }
+    const choices = shuffle(Array.from(set).slice(0, 3)).map(String);
     list.push({
       kind: 'siffra',
       question: `Vilken siffra är ${NUMBER_WORDS[correct]}?`,
@@ -57,7 +62,7 @@ function buildChallenges(): Challenge[] {
     const others = shuffle(opts.filter(o => o.l !== target.l)).slice(0, 2);
     list.push({
       kind: 'bokstav',
-      question: `Hitta bokstaven ${target.l}`,
+      question: `Hitta bokstaven ${target.l}!`,
       spoken: `Hitta bokstaven ${target.l}, som i ${target.word}!`,
       choices: shuffle([target.l, ...others.map(o => o.l)]),
       answer: target.l,
@@ -70,29 +75,42 @@ function buildChallenges(): Challenge[] {
     const animals = ['🐉', '⭐', '💎', '🎈', '🌟'];
     const e = animals[Math.floor(Math.random() * animals.length)];
     const correct = 1 + Math.floor(Math.random() * 5);
-    const choices = shuffle([String(correct), String(Math.max(1, correct - 1)), String(Math.min(5, correct + 1))]);
+    const set = new Set<number>([correct]);
+    for (let off = 1; set.size < 3 && off < 6; off++) {
+      if (correct - off >= 1) set.add(correct - off);
+      if (correct + off <= 5) set.add(correct + off);
+    }
+    const choices = shuffle(Array.from(set).slice(0, 3)).map(String);
     list.push({
       kind: 'rakna',
       question: `Hur många ${e} ser du?`,
-      spoken: `Räkna ${e}!`,
-      choices: Array.from(new Set(choices)).slice(0, 3),
+      spoken: `Räkna! Hur många ${e} ser du?`,
+      choices,
       answer: String(correct),
       emoji: e,
       count: correct,
     });
   }
 
-  // Form: identify shape
+  // Form: identify shape — "hjärta" is an ett-word, the rest are en-words.
   {
-    const opts = ['cirkel', 'kvadrat', 'triangel', 'stjärna', 'hjärta'];
+    const opts: { name: string; gender: 'en' | 'ett' }[] = [
+      { name: 'cirkel', gender: 'en' },
+      { name: 'kvadrat', gender: 'en' },
+      { name: 'triangel', gender: 'en' },
+      { name: 'stjärna', gender: 'en' },
+      { name: 'hjärta', gender: 'ett' },
+    ];
     const target = opts[Math.floor(Math.random() * opts.length)];
-    const others = shuffle(opts.filter(o => o !== target)).slice(0, 2);
+    const others = shuffle(opts.filter(o => o.name !== target.name)).slice(0, 2);
+    const article = target.gender === 'en' ? 'en' : 'ett';
+    const which = target.gender === 'en' ? 'Vilken' : 'Vilket';
     list.push({
       kind: 'form',
-      question: `Vilken är en ${target}?`,
-      spoken: `Vilken är en ${target}?`,
-      choices: shuffle([target, ...others]),
-      answer: target,
+      question: `${which} är ${article} ${target.name}?`,
+      spoken: `${which} är ${article} ${target.name}?`,
+      choices: shuffle([target.name, ...others.map(o => o.name)]),
+      answer: target.name,
     });
   }
 

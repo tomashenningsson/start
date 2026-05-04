@@ -47,7 +47,7 @@ export function LevelComplete({ level, stars, islandName, nextHref, onReplay }: 
 
         <div className="pt-12">
           <div className="text-3xl font-black text-purple-700 mb-1">Nivå {level} klar!</div>
-          <div className="text-base font-bold text-pink-500 mb-4">{islandName} är räddad! ✨</div>
+          <div className="text-base font-bold text-pink-500 mb-4">Du räddade {islandName}! ✨</div>
 
           <div className="my-4">
             <StarRow count={stars} size="xl" />
