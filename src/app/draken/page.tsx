@@ -29,60 +29,18 @@ interface Island {
 }
 
 const ISLANDS: Island[] = [
-  {
-    level: 1,
-    name: 'Ballongängen',
-    emoji: '🎈',
-    desc: 'Poppa rätt antal!',
-    color: 'from-pink-300 to-rose-400',
-    ring: 'ring-pink-200',
-    position: { top: '8%', left: '30%' },
-  },
-  {
-    level: 2,
-    name: 'Bokstavsskogen',
-    emoji: '🌳',
-    desc: 'Hitta bokstaven!',
-    color: 'from-emerald-300 to-green-500',
-    ring: 'ring-emerald-200',
-    position: { top: '23%', left: '70%' },
-  },
-  {
-    level: 3,
-    name: 'Räknefloden',
-    emoji: '🦆',
-    desc: 'Räkna djuren!',
-    color: 'from-sky-300 to-cyan-500',
-    ring: 'ring-sky-200',
-    position: { top: '40%', left: '30%' },
-  },
-  {
-    level: 4,
-    name: 'Formgrottan',
-    emoji: '🔷',
-    desc: 'Matcha former!',
-    color: 'from-violet-300 to-purple-500',
-    ring: 'ring-violet-200',
-    position: { top: '55%', left: '70%' },
-  },
-  {
-    level: 5,
-    name: 'Bokstavsberget',
-    emoji: '🏔️',
-    desc: 'Första bokstaven!',
-    color: 'from-amber-300 to-orange-500',
-    ring: 'ring-amber-200',
-    position: { top: '72%', left: '30%' },
-  },
-  {
-    level: 6,
-    name: 'Drakslottet',
-    emoji: '🏰',
-    desc: 'Sista utmaningen!',
-    color: 'from-fuchsia-400 to-purple-600',
-    ring: 'ring-fuchsia-200',
-    position: { top: '87%', left: '70%' },
-  },
+  { level: 1, name: 'Ballongängen', emoji: '🎈', desc: 'Poppa rätt antal!', color: 'from-pink-300 to-rose-400', ring: 'ring-pink-200', position: { top: '4%', left: '30%' } },
+  { level: 2, name: 'Bokstavsskogen', emoji: '🌳', desc: 'Hitta bokstaven!', color: 'from-emerald-300 to-green-500', ring: 'ring-emerald-200', position: { top: '12%', left: '70%' } },
+  { level: 3, name: 'Räknefloden', emoji: '🦆', desc: 'Räkna djuren!', color: 'from-sky-300 to-cyan-500', ring: 'ring-sky-200', position: { top: '20%', left: '30%' } },
+  { level: 4, name: 'Formgrottan', emoji: '🔷', desc: 'Matcha former!', color: 'from-violet-300 to-purple-500', ring: 'ring-violet-200', position: { top: '28%', left: '70%' } },
+  { level: 5, name: 'Bokstavsberget', emoji: '🏔️', desc: 'Första bokstaven!', color: 'from-amber-300 to-orange-500', ring: 'ring-amber-200', position: { top: '36%', left: '30%' } },
+  { level: 6, name: 'Drakslottet', emoji: '🏰', desc: 'Mixad utmaning!', color: 'from-fuchsia-400 to-purple-600', ring: 'ring-fuchsia-200', position: { top: '44%', left: '70%' } },
+  { level: 7, name: 'Färgön', emoji: '🎨', desc: 'Lär dig färger!', color: 'from-yellow-300 to-orange-400', ring: 'ring-yellow-200', position: { top: '52%', left: '30%' } },
+  { level: 8, name: 'Mönstergården', emoji: '🌻', desc: 'Vad kommer härnäst?', color: 'from-lime-300 to-green-500', ring: 'ring-lime-200', position: { top: '60%', left: '70%' } },
+  { level: 9, name: 'Stora-Lilla', emoji: '🐚', desc: 'Störst eller minst?', color: 'from-cyan-300 to-blue-500', ring: 'ring-cyan-200', position: { top: '68%', left: '30%' } },
+  { level: 10, name: 'Memoryskogen', emoji: '🃏', desc: 'Hitta paren!', color: 'from-purple-300 to-indigo-500', ring: 'ring-purple-200', position: { top: '76%', left: '70%' } },
+  { level: 11, name: 'Plus-Plutten', emoji: '➕', desc: 'Räkna ihop!', color: 'from-rose-300 to-pink-500', ring: 'ring-rose-200', position: { top: '84%', left: '30%' } },
+  { level: 12, name: 'Motsatsbron', emoji: '⚖️', desc: 'Hitta motsatsen!', color: 'from-fuchsia-300 to-rose-600', ring: 'ring-fuchsia-200', position: { top: '92%', left: '70%' } },
 ];
 
 export default function DrakenMapPage() {
@@ -157,6 +115,15 @@ export default function DrakenMapPage() {
             <span className="text-xl">📖</span>
             <span className="text-sm font-black text-violet-700">Samlarbok</span>
           </Link>
+          {progress.unlockedRewards.length > 0 && (
+            <Link
+              href="/draken/vinst"
+              className="inline-flex items-center gap-2 bg-white/80 backdrop-blur rounded-full px-4 py-2 shadow-sm ring-2 ring-pink-200 active:scale-95 transition-transform"
+            >
+              <span className="text-xl">👕</span>
+              <span className="text-sm font-black text-pink-700">Garderob</span>
+            </Link>
+          )}
         </div>
 
         {allDone && (
@@ -174,23 +141,25 @@ export default function DrakenMapPage() {
         <div
           className="relative w-full"
           style={{
-            paddingBottom: '150%',
+            paddingBottom: '320%',
           }}
         >
           {/* Decorative clouds */}
-          <span className="absolute text-4xl opacity-80 select-none animate-float-2" style={{ top: '5%', right: '5%' }}>☁️</span>
-          <span className="absolute text-3xl opacity-70 select-none animate-float-1" style={{ top: '32%', left: '5%' }}>☁️</span>
-          <span className="absolute text-3xl opacity-60 select-none animate-float-3" style={{ top: '63%', right: '3%' }}>☁️</span>
-          <span className="absolute text-2xl opacity-70 select-none animate-float-2" style={{ top: '78%', left: '8%' }}>☁️</span>
+          <span className="absolute text-4xl opacity-80 select-none animate-float-2" style={{ top: '3%', right: '5%' }}>☁️</span>
+          <span className="absolute text-3xl opacity-70 select-none animate-float-1" style={{ top: '17%', left: '5%' }}>☁️</span>
+          <span className="absolute text-3xl opacity-60 select-none animate-float-3" style={{ top: '34%', right: '3%' }}>☁️</span>
+          <span className="absolute text-2xl opacity-70 select-none animate-float-2" style={{ top: '50%', left: '8%' }}>☁️</span>
+          <span className="absolute text-3xl opacity-70 select-none animate-float-1" style={{ top: '66%', right: '6%' }}>☁️</span>
+          <span className="absolute text-2xl opacity-60 select-none animate-float-3" style={{ top: '82%', left: '6%' }}>☁️</span>
 
-          {/* Connecting dotted path */}
+          {/* Connecting dotted path that zig-zags through all 12 islands */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
-            viewBox="0 0 100 150"
+            viewBox="0 0 100 320"
             preserveAspectRatio="none"
           >
             <path
-              d="M 30,12 Q 50,18 70,34 Q 78,46 30,60 Q 22,68 70,82 Q 78,96 30,108 Q 22,120 70,130"
+              d="M 30,13 Q 50,17 70,38 Q 78,52 30,64 Q 22,76 70,90 Q 78,108 30,115 Q 22,128 70,141 Q 78,156 30,166 Q 22,180 70,192 Q 78,210 30,218 Q 22,232 70,243 Q 78,260 30,269 Q 22,284 70,294"
               stroke="#fff"
               strokeWidth="0.8"
               strokeDasharray="2,2"

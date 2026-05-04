@@ -13,6 +13,9 @@ const BODY_FILTERS: Record<string, string> = {
   'farg-regnbage': 'drop-shadow(0 4px 12px rgba(236,72,153,0.55)) hue-rotate(40deg) saturate(1.6)',
   'farg-guld': 'drop-shadow(0 4px 14px rgba(250,204,21,0.7)) hue-rotate(-50deg) saturate(2)',
   'farg-rosa': 'drop-shadow(0 4px 12px rgba(244,114,182,0.55)) hue-rotate(190deg) saturate(1.4)',
+  'farg-isbla': 'drop-shadow(0 4px 14px rgba(56,189,248,0.7)) hue-rotate(160deg) saturate(1.6) brightness(1.1)',
+  'farg-skog': 'drop-shadow(0 4px 12px rgba(22,101,52,0.6)) saturate(1.8) brightness(0.85)',
+  'farg-neon': 'drop-shadow(0 4px 18px rgba(168,85,247,0.85)) hue-rotate(220deg) saturate(2.4) brightness(1.15)',
 };
 
 const HAT_EMOJI: Record<string, string> = {
@@ -20,18 +23,26 @@ const HAT_EMOJI: Record<string, string> = {
   krona: '👑',
   blomkrans: '🌸',
   keps: '🧢',
+  magikerhatt: '🧙',
+  partyhatt: '🥳',
 };
 
 const WING_EMOJI: Record<string, string> = {
   vingar: '🪽',
   fjarilsvingar: '🦋',
   eldvingar: '🔥',
+  isvingar: '❄️',
+  regnvingar: '🌈',
+  fagelvingar: '🐦',
 };
 
-const ACCESSORY_EMOJI: Record<string, { emoji: string; pos: 'face' | 'chest' | 'tail' }> = {
+const ACCESSORY_EMOJI: Record<string, { emoji: string; pos: 'face' | 'chest' | 'tail' | 'wrist' }> = {
   glasogon: { emoji: '🕶️', pos: 'face' },
   halsband: { emoji: '💖', pos: 'chest' },
   svans: { emoji: '⭐', pos: 'tail' },
+  fluga: { emoji: '🎀', pos: 'chest' },
+  klocka: { emoji: '⌚', pos: 'wrist' },
+  halsduk: { emoji: '🧣', pos: 'chest' },
 };
 
 export function Glittra({ equipped = {}, size = 96, flying, className = '' }: Props) {
@@ -135,6 +146,20 @@ export function Glittra({ equipped = {}, size = 96, flying, className = '' }: Pr
             bottom: -size * 0.05,
             right: -size * 0.15,
             filter: 'drop-shadow(0 2px 6px rgba(250,204,21,0.6))',
+          }}
+        >
+          {accessory.emoji}
+        </span>
+      )}
+
+      {accessory?.pos === 'wrist' && (
+        <span
+          className="absolute"
+          style={{
+            fontSize: size * 0.28,
+            bottom: size * 0.12,
+            left: -size * 0.05,
+            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.35))',
           }}
         >
           {accessory.emoji}
