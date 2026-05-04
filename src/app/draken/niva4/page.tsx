@@ -22,7 +22,38 @@ const COLOR_HEX: Record<ColorKey, string> = {
   rosa: '#ec4899',
 };
 
-const NUMBER_WORDS = ['noll', 'en', 'två', 'tre', 'fyra', 'fem'];
+// Swedish: shapes have proper plural forms and en/ett gender for the article.
+const SHAPE_FORMS: Record<ShapeKind, { sing: string; plur: string; gender: 'en' | 'ett' }> = {
+  cirkel: { sing: 'cirkel', plur: 'cirklar', gender: 'en' },
+  kvadrat: { sing: 'kvadrat', plur: 'kvadrater', gender: 'en' },
+  triangel: { sing: 'triangel', plur: 'trianglar', gender: 'en' },
+  stjärna: { sing: 'stjärna', plur: 'stjärnor', gender: 'en' },
+  hjärta: { sing: 'hjärta', plur: 'hjärtan', gender: 'ett' },
+};
+
+// Adjective forms agree with gender (sing) and number (plur).
+const COLOR_FORMS: Record<ColorKey, { en: string; ett: string; plur: string }> = {
+  blå: { en: 'blå', ett: 'blått', plur: 'blåa' },
+  röd: { en: 'röd', ett: 'rött', plur: 'röda' },
+  gul: { en: 'gul', ett: 'gult', plur: 'gula' },
+  grön: { en: 'grön', ett: 'grönt', plur: 'gröna' },
+  lila: { en: 'lila', ett: 'lila', plur: 'lila' },
+  rosa: { en: 'rosa', ett: 'rosa', plur: 'rosa' },
+};
+
+const NUMBER_WORDS_EN = ['noll', 'en', 'två', 'tre', 'fyra', 'fem'];
+
+function shapePhrase(shape: ShapeKind, color: ColorKey, count: number): string {
+  const sf = SHAPE_FORMS[shape];
+  const cf = COLOR_FORMS[color];
+  if (count === 1) {
+    const article = sf.gender === 'en' ? 'en' : 'ett';
+    const adj = sf.gender === 'en' ? cf.en : cf.ett;
+    return `${article} ${adj} ${sf.sing}`;
+  }
+  return `${NUMBER_WORDS_EN[count]} ${cf.plur} ${sf.plur}`;
+}
+
 const ROUNDS = 5;
 
 interface Round {
@@ -113,7 +144,7 @@ export default function Niva4() {
   useEffect(() => {
     if (hasIntro) return;
     const t = setTimeout(() => {
-      speak(`Lägg ${NUMBER_WORDS[goal]} ${data.color} ${data.shape}${goal > 1 ? 'ar' : ''} i grottan!`);
+      speak(`Lägg ${shapePhrase(data.shape, data.color, goal)} i grottan!`);
       setHasIntro(true);
     }, 350);
     return () => clearTimeout(t);
@@ -147,7 +178,7 @@ export default function Niva4() {
       setWrongId(id);
       setMistakes(m => m + 1);
       hapticImpact('light');
-      speak('Det räcker, du har redan tillräckligt!');
+      speak('Det räcker! Du har redan lagt tillräckligt.');
       setTimeout(() => setWrongId(null), 500);
       return;
     }
@@ -160,7 +191,7 @@ export default function Niva4() {
       setWrongId(id);
       setMistakes(m => m + 1);
       hapticImpact('light');
-      speak('Försök igen, leta efter rätt färg och form.');
+      speak('Försök igen! Leta efter rätt färg och form.');
       setTimeout(() => setWrongId(null), 500);
     }
   };
@@ -187,13 +218,14 @@ export default function Niva4() {
           <div className="flex-1">
             <div className="text-sm font-bold text-purple-700/70">Nivå 4 · Runda {round + 1}/{ROUNDS}</div>
             <button
-              onClick={() =>
-                speak(`Lägg ${NUMBER_WORDS[goal]} ${data.color} ${data.shape}${goal > 1 ? 'ar' : ''} i grottan!`)
-              }
+              onClick={() => speak(`Lägg ${shapePhrase(data.shape, data.color, goal)} i grottan!`)}
               className="text-left text-xl font-black text-violet-700 active:scale-95 transition-transform"
             >
-              Lägg {goal} {data.color}{' '}
-              <span style={{ color: COLOR_HEX[data.color] }}>{data.shape}{goal > 1 ? 'ar' : ''}</span>! 🔊
+              Lägg{' '}
+              <span style={{ color: COLOR_HEX[data.color] }}>
+                {shapePhrase(data.shape, data.color, goal)}
+              </span>
+              ! 🔊
             </button>
           </div>
         </div>
