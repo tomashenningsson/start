@@ -217,3 +217,56 @@
 .animate-aurora-1 { animation: aurora-1 8s ease-in-out infinite; }
 .animate-aurora-2 { animation: aurora-2 11s ease-in-out infinite 1.5s; }
 .animate-aurora-3 { animation: aurora-3 7s ease-in-out infinite 3s; }
+
+/* Sifferdraken — soft, kid-friendly animations */
+@keyframes draken-pop {
+  0%   { transform: scale(0.4) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-draken-pop { animation: draken-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@keyframes balloon-pop {
+  0%   { transform: scale(1); opacity: 1; }
+  40%  { transform: scale(1.4); opacity: 0.9; }
+  100% { transform: scale(0.2); opacity: 0; }
+}
+.animate-balloon-pop { animation: balloon-pop 0.35s ease-out forwards; }
+
+@keyframes balloon-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%       { transform: translateY(-12px) rotate(2deg); }
+}
+.animate-balloon-float { animation: balloon-float 3.4s ease-in-out infinite; }
+
+@keyframes sparkle-spin {
+  0%   { transform: scale(0) rotate(0deg); opacity: 1; }
+  60%  { transform: scale(1.2) rotate(180deg); opacity: 1; }
+  100% { transform: scale(0.6) rotate(360deg); opacity: 0; }
+}
+.animate-sparkle-spin { animation: sparkle-spin 0.9s ease-out forwards; }
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50%       { transform: rotate(3deg); }
+}
+.animate-wiggle { animation: wiggle 0.6s ease-in-out infinite; }
+
+@keyframes rainbow-sweep {
+  0%   { filter: hue-rotate(0deg) saturate(0.4) brightness(0.85); }
+  100% { filter: hue-rotate(0deg) saturate(1) brightness(1); }
+}
+.animate-rainbow-sweep { animation: rainbow-sweep 2.5s ease-in-out forwards; }
+
+@keyframes medal-glow {
+  0%, 100% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 16px rgba(250,204,21,0.6)); }
+  50%       { transform: scale(1.08) rotate(3deg); filter: drop-shadow(0 0 32px rgba(250,204,21,0.95)); }
+}
+.animate-medal-glow { animation: medal-glow 1.8s ease-in-out infinite; }
+
+@keyframes draken-victory {
+  0%   { transform: translate(0, 50px) scale(0.6) rotate(-10deg); opacity: 0; }
+  40%  { transform: translate(0, -10px) scale(1.1) rotate(5deg); opacity: 1; }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-draken-victory { animation: draken-victory 1.2s ease-out forwards; }
