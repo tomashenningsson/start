@@ -34,7 +34,7 @@ interface FX {
   id: number;
   x: number;
   y: number;
-  kind: 'block' | 'hit' | 'spark' | 'star' | 'smoke';
+  kind: 'block' | 'hit' | 'spark' | 'star' | 'smoke' | 'volcano';
   born: number;
   vx?: number;
   vy?: number;
@@ -53,8 +53,10 @@ const SLOW_CHARGES = 3;
 const SLOW_FACTOR = 0.4;
 const SLOW_MS = 2500;
 
-// How often fireballs spawn (ms). Lower = faster pace.
-const SPAWN_GAP_MS_BY_LEVEL = [2200, 1900, 1700, 1500, 1400];
+// How often fireballs spawn (ms). Lower = faster pace. Level 1 is the easy intro.
+const SPAWN_GAP_MS_BY_LEVEL = [3400, 2200, 1900, 1700, 1500];
+// Fireball flight duration (s) by level — higher = more time to answer.
+const FIREBALL_DURATION_BY_LEVEL = [6.5, 5.0, 4.2, 3.6, 3.4];
 // Delay after answering before next question appears (ms).
 const NEXT_QUESTION_DELAY_MS = 120;
 // Max wall layers shown / stackable.
@@ -403,7 +405,8 @@ function Wall({ layers, breaking }: { layers: number; breaking: boolean }) {
 }
 
 function FXEl({ fx }: { fx: FX }) {
-  const age = (Date.now() - fx.born) / 700;
+  const lifetime = fx.kind === 'volcano' ? 1400 : 700;
+  const age = (Date.now() - fx.born) / lifetime;
   const opacity = Math.max(0, 1 - age);
   if (fx.kind === 'block') {
     return (
@@ -436,6 +439,58 @@ function FXEl({ fx }: { fx: FX }) {
         pointerEvents: 'none', opacity,
         fontSize: 22, filter: 'drop-shadow(0 0 10px #fde047)',
       }}>⭐</div>
+    );
+  }
+  if (fx.kind === 'volcano') {
+    const grow = Math.min(1, age * 3);
+    const erupt = Math.min(1, Math.max(0, (age - 0.15) * 1.8));
+    return (
+      <div style={{
+        position: 'absolute', left: `${fx.x}%`, bottom: `${fx.y}%`,
+        transform: `translate(-50%, 50%)`,
+        pointerEvents: 'none', opacity,
+      }}>
+        {/* Mound base */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: '50%',
+          transform: `translateX(-50%) scale(${grow})`,
+          width: 64, height: 0,
+          borderLeft: '32px solid transparent',
+          borderRight: '32px solid transparent',
+          borderBottom: '34px solid #2a0a06',
+          filter: 'drop-shadow(0 0 8px rgba(120,30,10,0.7))',
+          transformOrigin: 'bottom center',
+        }} />
+        {/* Lava cap */}
+        <div style={{
+          position: 'absolute', bottom: 26, left: '50%',
+          transform: `translateX(-50%) scale(${grow})`,
+          width: 28, height: 8, borderRadius: 4,
+          background: 'radial-gradient(ellipse, #fde047, #ea580c 60%, #7c2d12 100%)',
+          boxShadow: '0 0 14px rgba(249,115,22,0.85)',
+        }} />
+        {/* Erupting plume */}
+        <div style={{
+          position: 'absolute', bottom: 30, left: '50%',
+          transform: `translate(-50%, 0) scale(${0.4 + erupt * 1.2})`,
+          fontSize: 44,
+          filter: 'drop-shadow(0 0 14px rgba(249,115,22,0.85))',
+          opacity: erupt,
+        }}>🔥</div>
+        {/* Side splatter */}
+        <div style={{
+          position: 'absolute', bottom: 24, left: `${10 - erupt * 8}%`,
+          transform: `scale(${0.6 + erupt * 0.4})`,
+          fontSize: 18, opacity: erupt * 0.9,
+          filter: 'drop-shadow(0 0 8px rgba(249,115,22,0.7))',
+        }}>💥</div>
+        <div style={{
+          position: 'absolute', bottom: 24, right: `${10 - erupt * 8}%`,
+          transform: `scale(${0.6 + erupt * 0.4})`,
+          fontSize: 18, opacity: erupt * 0.9,
+          filter: 'drop-shadow(0 0 8px rgba(249,115,22,0.7))',
+        }}>💥</div>
+      </div>
     );
   }
   if (fx.kind === 'spark') {
@@ -775,15 +830,16 @@ export default function EldfagelnGame() {
 
   const pushFx = (x: number, y: number, kind: FX['kind'], vx?: number, vy?: number) => {
     const fx: FX = { id: idRef.current++, x, y, kind, born: Date.now(), vx, vy };
+    const ttl = kind === 'volcano' ? 1450 : 750;
     setFxList(prev => [...prev, fx]);
-    setTimeout(() => setFxList(prev => prev.filter(f => f.id !== fx.id)), 750);
+    setTimeout(() => setFxList(prev => prev.filter(f => f.id !== fx.id)), ttl);
   };
 
   const spawnFireball = useCallback(() => {
     const st = stateRef.current;
     const lvl = st.level;
     const isBoss = lvl === TOTAL_LEVELS;
-    const baseDur = isBoss ? 3.4 : Math.max(2.6, 5.2 - (lvl - 1) * 0.55);
+    const baseDur = FIREBALL_DURATION_BY_LEVEL[Math.min(lvl - 1, FIREBALL_DURATION_BY_LEVEL.length - 1)];
     const startX = st.birdX + (Math.random() - 0.5) * 8;
     const startY = BIRD_Y;
     const f: Fireball = {
@@ -852,6 +908,7 @@ export default function EldfagelnGame() {
     st.wallLayers = 0;
     st.nextSpawnAt = Date.now() + 700;
     st.levelDoneSpawning = false;
+    st.levelClearedAt = 0;
     setLevel(newLevel);
     setQuestionsLeft(QUESTIONS_PER_LEVEL[newLevel - 1]);
     setBossHp(isBoss ? QUESTIONS_PER_LEVEL[newLevel - 1] : 0);
@@ -992,24 +1049,33 @@ export default function EldfagelnGame() {
         }
         fb.trail = fb.trail.filter(p => Date.now() - p.born < 400);
 
-        if (t >= 1) {
-          if (st.wallLayers > 0) {
-            // Block: consume top wall layer
-            fb.state = 'blocked';
-            wallBreakEvents++;
-            pushFx(fb.x, WALL_Y + 4, 'block');
-            for (let i = 0; i < 5; i++) {
-              const ang = Math.random() * Math.PI * 2;
-              pushFx(fb.x, WALL_Y + 4, 'spark', Math.cos(ang) * 0.6, Math.sin(ang) * 0.6);
-            }
-            st.wallLayers = Math.max(0, st.wallLayers - 1);
-          } else {
-            // Hit player
-            fb.state = 'hit';
-            pushFx(PLAYER_X, PLAYER_Y + 8, 'hit');
-            for (let i = 0; i < 5; i++) pushFx(PLAYER_X, PLAYER_Y + 4, 'smoke');
-            livesLost++;
+        // Wall collision: fireball descends into wall zone above the player.
+        // Wall stack top rises with each layer.
+        const visibleLayers = Math.min(st.wallLayers, MAX_WALL_LAYERS);
+        const wallTopY = WALL_Y + 4 + visibleLayers * 4.2;
+        const overWall = Math.abs(fb.x - PLAYER_X) < 16;
+        if (st.wallLayers > 0 && overWall && fb.y <= wallTopY) {
+          fb.state = 'blocked';
+          wallBreakEvents++;
+          pushFx(fb.x, wallTopY, 'block');
+          for (let i = 0; i < 5; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            pushFx(fb.x, wallTopY, 'spark', Math.cos(ang) * 0.6, Math.sin(ang) * 0.6);
           }
+          st.wallLayers = Math.max(0, st.wallLayers - 1);
+          continue;
+        }
+
+        if (t >= 1) {
+          // No wall stopped it — fireball hits the ground and erupts a volcano.
+          fb.state = 'hit';
+          pushFx(fb.x, 4, 'volcano');
+          for (let i = 0; i < 6; i++) {
+            const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
+            pushFx(fb.x, 6, 'spark', Math.cos(ang) * 0.7, Math.sin(ang) * 0.7);
+          }
+          for (let i = 0; i < 4; i++) pushFx(fb.x, 6, 'smoke');
+          livesLost++;
         }
       }
 
