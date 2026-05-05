@@ -49,13 +49,14 @@ interface Round {
   missingIndex: number;
   correct: Token;
   choices: Token[];
+  key: string;
 }
 
 function pickPool(): Token[] {
   return Math.random() < 0.5 ? COLORS : SHAPES;
 }
 
-function buildRound(level: number): Round {
+function makeRound(level: number): Round {
   const pool = pickPool();
   // Pattern types based on round difficulty
   let pattern: Token[];
@@ -83,7 +84,16 @@ function buildRound(level: number): Round {
   // Choices: correct + 2 distractors from same pool
   const distractors = shuffle(pool.filter(t => t.label !== correct.label)).slice(0, 2);
   const choices = shuffle([correct, ...distractors]);
-  return { pattern, visibleCount, missingIndex, correct, choices };
+  const key = pattern.map(t => t.label).join('_');
+  return { pattern, visibleCount, missingIndex, correct, choices, key };
+}
+
+function buildRound(level: number, prevKey?: string): Round {
+  let r = makeRound(level);
+  for (let i = 0; i < 8 && prevKey && r.key === prevKey; i++) {
+    r = makeRound(level);
+  }
+  return r;
 }
 
 export default function Niva17() {
@@ -115,7 +125,7 @@ export default function Niva17() {
       return;
     }
     setRound(r => r + 1);
-    setData(buildRound(round + 1));
+    setData(buildRound(round + 1, data.key));
     setPicked(null);
     setHasIntro(false);
   };

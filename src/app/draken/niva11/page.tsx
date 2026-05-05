@@ -32,12 +32,19 @@ function shuffle<T>(a: T[]): T[] {
   return c;
 }
 
-function buildRound() {
-  const subj = SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)];
-  // Pick a + b such that 1 <= a, b and a + b <= 5
-  const sum = 2 + Math.floor(Math.random() * 4); // 2..5
-  const a = 1 + Math.floor(Math.random() * (sum - 1)); // 1..sum-1
-  const b = sum - a;
+function buildRound(prevKey?: string) {
+  let subj = SUBJECTS[0];
+  let sum = 2;
+  let a = 1;
+  let b = 1;
+  for (let i = 0; i < 12; i++) {
+    subj = SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)];
+    // Pick a + b such that 1 <= a, b and a + b <= 5
+    sum = 2 + Math.floor(Math.random() * 4); // 2..5
+    a = 1 + Math.floor(Math.random() * (sum - 1)); // 1..sum-1
+    b = sum - a;
+    if (!prevKey || `${subj.e}_${a}_${b}` !== prevKey) break;
+  }
   const set = new Set<number>([sum]);
   for (let off = 1; set.size < 3 && off < 6; off++) {
     if (sum - off >= 1) set.add(sum - off);
@@ -82,7 +89,7 @@ export default function Niva11() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(`${data.subj.e}_${data.a}_${data.b}`));
     setPicked(null);
     setRound(r => r + 1);
     setHasIntro(false);

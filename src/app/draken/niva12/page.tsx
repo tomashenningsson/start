@@ -37,8 +37,12 @@ function shuffle<T>(a: T[]): T[] {
   return c;
 }
 
-function buildRound() {
-  const pair = PAIRS[Math.floor(Math.random() * PAIRS.length)];
+function buildRound(prevPromptWord?: string) {
+  const candidates = prevPromptWord
+    ? PAIRS.filter(p => p.a.word !== prevPromptWord && p.b.word !== prevPromptWord)
+    : PAIRS;
+  const pool = candidates.length > 0 ? candidates : PAIRS;
+  const pair = pool[Math.floor(Math.random() * pool.length)];
   // Show one side, ask for the opposite
   const showA = Math.random() < 0.5;
   const prompt = showA ? pair.a : pair.b;
@@ -83,7 +87,7 @@ export default function Niva12() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(data.prompt.word));
     setPicked(null);
     setRound(r => r + 1);
     setHasIntro(false);

@@ -53,7 +53,11 @@ function makeBalloons(count: number): Balloon[] {
   return balloons;
 }
 
-function pickTarget(): number {
+function pickTarget(prev?: number): number {
+  for (let i = 0; i < 8; i++) {
+    const n = 1 + Math.floor(Math.random() * 5);
+    if (n !== prev) return n;
+  }
   return 1 + Math.floor(Math.random() * 5);
 }
 
@@ -93,7 +97,7 @@ export default function Niva1() {
       finish();
       return;
     }
-    const next = pickTarget();
+    const next = pickTarget(target);
     setTarget(next);
     setBalloons(makeBalloons(next));
     setPopped(0);

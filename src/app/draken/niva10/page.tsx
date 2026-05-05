@@ -76,7 +76,9 @@ export default function Niva10() {
 
   const nextRound = () => {
     if (round + 1 >= ROUNDS_CONFIG.length) {
-      const finalStars = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
+      // Memory game: even attentive players need some flips to learn the board.
+      // Be generous so 3 stars is achievable with good play.
+      const finalStars = mistakes <= 5 ? 3 : mistakes <= 10 ? 2 : 1;
       setStars(finalStars);
       completeLevel(10, finalStars);
       setDone(true);

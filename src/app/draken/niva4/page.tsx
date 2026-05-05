@@ -72,11 +72,16 @@ function shuffle<T>(a: T[]): T[] {
   return c;
 }
 
-function buildRound(): Round {
+function buildRound(prevKey?: string): Round {
   const shapes: ShapeKind[] = ['cirkel', 'kvadrat', 'triangel', 'stjärna', 'hjärta'];
   const colors: ColorKey[] = ['blå', 'röd', 'gul', 'grön', 'lila', 'rosa'];
-  const shape = shapes[Math.floor(Math.random() * shapes.length)];
-  const color = colors[Math.floor(Math.random() * colors.length)];
+  let shape: ShapeKind = shapes[0];
+  let color: ColorKey = colors[0];
+  for (let i = 0; i < 12; i++) {
+    shape = shapes[Math.floor(Math.random() * shapes.length)];
+    color = colors[Math.floor(Math.random() * colors.length)];
+    if (!prevKey || `${shape}_${color}` !== prevKey) break;
+  }
   const count = 1 + Math.floor(Math.random() * 4);
 
   const matching = Array.from({ length: count + 1 + Math.floor(Math.random() * 2) }, (_, i) => ({
@@ -166,7 +171,7 @@ export default function Niva4() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(`${data.shape}_${data.color}`));
     setPlaced([]);
     setRound(r => r + 1);
     setHasIntro(false);
