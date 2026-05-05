@@ -8,7 +8,7 @@ export interface RewardDef {
   emoji: string;
   desc: string;
   cat: RewardCategory;
-  unlockedBy: number; // level number that grants this reward
+  unlockedBy: number; // level number that grants this reward, 0 = special / always available
 }
 
 // Each level grants 2 specific rewards on first completion.
@@ -49,6 +49,24 @@ export const REWARDS_CATALOG: RewardDef[] = [
   // Niva 12 — Motsatsernas Bro
   { id: 'eldvingar', label: 'Eldvingar', emoji: '🔥', desc: 'Vingar av eld', cat: 'wings', unlockedBy: 12 },
   { id: 'farg-neon', label: 'Neonlila', emoji: '💜', desc: 'Lysande neonfärg', cat: 'body', unlockedBy: 12 },
+  // Niva 13 — Tidsstranden
+  { id: 'farg-soluppgang', label: 'Soluppgång', emoji: '🌅', desc: 'Färg som soluppgång', cat: 'body', unlockedBy: 13 },
+  { id: 'manhatt', label: 'Mångloria', emoji: '🌙', desc: 'Glödande månkrans', cat: 'hat', unlockedBy: 13 },
+  // Niva 14 — Musikdjungeln
+  { id: 'horlurar', label: 'DJ-hörlurar', emoji: '🎧', desc: 'Tjusiga hörlurar', cat: 'accessory', unlockedBy: 14 },
+  { id: 'djungelvingar', label: 'Djungelvingar', emoji: '🌴', desc: 'Lummiga djungelvingar', cat: 'wings', unlockedBy: 14 },
+  // Niva 15 — Mat- & Hälsobyn
+  { id: 'kockmossa', label: 'Kockmössa', emoji: '👨‍🍳', desc: 'Vit kockmössa', cat: 'hat', unlockedBy: 15 },
+  { id: 'applehalsband', label: 'Äpplehalsband', emoji: '🍎', desc: 'Friskt äpple runt halsen', cat: 'accessory', unlockedBy: 15 },
+  // Niva 16 — Fordonsstaden
+  { id: 'racerhjalm', label: 'Racerhjälm', emoji: '🏎️', desc: 'Snabb racerhjälm', cat: 'hat', unlockedBy: 16 },
+  { id: 'turbovingar', label: 'Turbovingar', emoji: '🚀', desc: 'Vingar med raketkraft', cat: 'wings', unlockedBy: 16 },
+  // Niva 17 — Mönsterpalatset
+  { id: 'monsterkrona', label: 'Mönsterkrona', emoji: '💠', desc: 'Krona av mönster', cat: 'hat', unlockedBy: 17 },
+  { id: 'farg-kamelont', label: 'Kameleontfärg', emoji: '🦎', desc: 'Färgskiftande hud', cat: 'body', unlockedBy: 17 },
+  // Niva 18 — Stjärnräkningens Himmel
+  { id: 'stjarnvingar', label: 'Stjärnvingar', emoji: '🌟', desc: 'Vingar av stjärnstoft', cat: 'wings', unlockedBy: 18 },
+  { id: 'kometsvans', label: 'Kometsvans', emoji: '☄️', desc: 'Glödande kometsvans', cat: 'accessory', unlockedBy: 18 },
 ];
 
 export const REWARD_BY_ID: Record<string, RewardDef> = REWARDS_CATALOG.reduce(
@@ -58,6 +76,16 @@ export const REWARD_BY_ID: Record<string, RewardDef> = REWARDS_CATALOG.reduce(
   },
   {} as Record<string, RewardDef>
 );
+
+// The legendary final reward for completing all 18 islands.
+export const RAINBOW_DRAGON_REWARD: RewardDef = {
+  id: 'farg-magimastare',
+  label: 'Regnbågsdraken',
+  emoji: '🌈',
+  desc: 'Förvandling till regnbågsdraken — bara för Magimästare!',
+  cat: 'body',
+  unlockedBy: 0,
+};
 
 export function rewardsForLevel(level: number): RewardDef[] {
   return REWARDS_CATALOG.filter(r => r.unlockedBy === level);
@@ -78,10 +106,20 @@ export interface DrakenProgress {
   unlockedRewards: string[];
   equipped: Equipped;
   totalStars: number;
+  // Player customization
+  playerName: string;
+  dragonName: string;
+  // Final reward / Magimästare title
+  isMagimastare: boolean;
+  // Daily rewards
+  lastDailyClaim: string | null; // YYYY-MM-DD
+  dailyStreak: number;
+  // Mini-game best scores
+  miniGameScores: Record<string, number>;
 }
 
 const KEY = 'sifferdraken_v1';
-export const TOTAL_LEVELS = 12;
+export const TOTAL_LEVELS = 18;
 
 export const DEFAULT_DRAKEN: DrakenProgress = {
   completedLevels: [],
@@ -91,6 +129,12 @@ export const DEFAULT_DRAKEN: DrakenProgress = {
   unlockedRewards: [],
   equipped: {},
   totalStars: 0,
+  playerName: '',
+  dragonName: 'Glittra',
+  isMagimastare: false,
+  lastDailyClaim: null,
+  dailyStreak: 0,
+  miniGameScores: {},
 };
 
 interface LegacyShape extends Partial<DrakenProgress> {
@@ -123,6 +167,12 @@ export function loadDraken(): DrakenProgress {
       unlockedLetters: parsed.unlockedLetters ?? [],
       unlockedRewards,
       equipped,
+      playerName: parsed.playerName ?? '',
+      dragonName: parsed.dragonName ?? 'Glittra',
+      isMagimastare: parsed.isMagimastare ?? false,
+      lastDailyClaim: parsed.lastDailyClaim ?? null,
+      dailyStreak: parsed.dailyStreak ?? 0,
+      miniGameScores: parsed.miniGameScores ?? {},
     };
   } catch {
     return DEFAULT_DRAKEN;
@@ -139,9 +189,19 @@ export function saveDraken(p: DrakenProgress) {
 // Auto-grant rewards for every completed level. Existing unlocked rewards stay.
 export function syncRewards(p: DrakenProgress): DrakenProgress {
   const eligible = REWARDS_CATALOG.filter(r => p.completedLevels.includes(r.unlockedBy)).map(r => r.id);
-  const merged = Array.from(new Set([...p.unlockedRewards, ...eligible]));
-  if (merged.length === p.unlockedRewards.length) return p;
-  const next = { ...p, unlockedRewards: merged };
+  let merged = Array.from(new Set([...p.unlockedRewards, ...eligible]));
+
+  // If all levels complete, also unlock the legendary rainbow dragon
+  let isMagimastare = p.isMagimastare;
+  if (isAllLevelsComplete(p)) {
+    if (!merged.includes(RAINBOW_DRAGON_REWARD.id)) {
+      merged = [...merged, RAINBOW_DRAGON_REWARD.id];
+    }
+    isMagimastare = true;
+  }
+
+  if (merged.length === p.unlockedRewards.length && isMagimastare === p.isMagimastare) return p;
+  const next = { ...p, unlockedRewards: merged, isMagimastare };
   saveDraken(next);
   return next;
 }
@@ -184,7 +244,7 @@ export function unlockLetter(letter: string) {
 
 // One item equipped per category at a time. Tap again to remove.
 export function toggleEquip(id: string): DrakenProgress {
-  const def = REWARD_BY_ID[id];
+  const def = id === RAINBOW_DRAGON_REWARD.id ? RAINBOW_DRAGON_REWARD : REWARD_BY_ID[id];
   const cur = loadDraken();
   if (!def || !cur.unlockedRewards.includes(id)) return cur;
   const equipped: Equipped = { ...cur.equipped };
@@ -194,6 +254,21 @@ export function toggleEquip(id: string): DrakenProgress {
     equipped[def.cat] = id;
   }
   const next = { ...cur, equipped };
+  saveDraken(next);
+  return next;
+}
+
+export function setPlayerName(name: string): DrakenProgress {
+  const cur = loadDraken();
+  const next = { ...cur, playerName: name.slice(0, 20) };
+  saveDraken(next);
+  return next;
+}
+
+export function setDragonName(name: string): DrakenProgress {
+  const cur = loadDraken();
+  const trimmed = name.trim().slice(0, 20);
+  const next = { ...cur, dragonName: trimmed.length > 0 ? trimmed : 'Glittra' };
   saveDraken(next);
   return next;
 }
@@ -209,4 +284,87 @@ export function isLevelUnlocked(level: number, progress: DrakenProgress): boolea
 
 export function isAllLevelsComplete(progress: DrakenProgress): boolean {
   return progress.completedLevels.length >= TOTAL_LEVELS;
+}
+
+// ---------- Daily reward system ----------
+
+export interface DailyReward {
+  day: number; // 1-7 within the streak cycle
+  stars: number;
+  emoji: string;
+  label: string;
+}
+
+export const DAILY_REWARDS: DailyReward[] = [
+  { day: 1, stars: 1, emoji: '⭐', label: 'En stjärna' },
+  { day: 2, stars: 1, emoji: '🌟', label: 'En stjärna till' },
+  { day: 3, stars: 2, emoji: '✨', label: 'Två stjärnor' },
+  { day: 4, stars: 2, emoji: '💫', label: 'Två glittriga stjärnor' },
+  { day: 5, stars: 3, emoji: '🌠', label: 'Stjärnregn' },
+  { day: 6, stars: 3, emoji: '🪄', label: 'Magisk stjärnpåse' },
+  { day: 7, stars: 5, emoji: '🏆', label: 'Veckopokal' },
+];
+
+function todayStr(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function yesterdayStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function canClaimDaily(progress: DrakenProgress): boolean {
+  return progress.lastDailyClaim !== todayStr();
+}
+
+export function nextDailyReward(progress: DrakenProgress): DailyReward {
+  const today = todayStr();
+  const yesterday = yesterdayStr();
+  let nextDay: number;
+  if (progress.lastDailyClaim === today) {
+    nextDay = ((progress.dailyStreak - 1 + 7) % 7) + 1;
+  } else if (progress.lastDailyClaim === yesterday) {
+    nextDay = (progress.dailyStreak % 7) + 1;
+  } else {
+    nextDay = 1;
+  }
+  return DAILY_REWARDS[nextDay - 1];
+}
+
+export function claimDaily(progress: DrakenProgress): { progress: DrakenProgress; reward: DailyReward | null } {
+  const today = todayStr();
+  if (progress.lastDailyClaim === today) {
+    return { progress, reward: null };
+  }
+  const reward = nextDailyReward(progress);
+  const yesterday = yesterdayStr();
+  const newStreak = progress.lastDailyClaim === yesterday ? progress.dailyStreak + 1 : 1;
+  const next: DrakenProgress = {
+    ...progress,
+    lastDailyClaim: today,
+    dailyStreak: newStreak,
+    totalStars: progress.totalStars + reward.stars,
+  };
+  saveDraken(next);
+  return { progress: next, reward };
+}
+
+// ---------- Mini-game best scores ----------
+
+export function recordMiniGameScore(id: string, score: number): DrakenProgress {
+  const cur = loadDraken();
+  const prev = cur.miniGameScores[id] ?? 0;
+  if (score <= prev) return cur;
+  const next = { ...cur, miniGameScores: { ...cur.miniGameScores, [id]: score } };
+  saveDraken(next);
+  return next;
 }
