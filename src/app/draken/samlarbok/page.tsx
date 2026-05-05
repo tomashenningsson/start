@@ -30,6 +30,12 @@ const ISLAND_NAMES = [
   'Memoryskogen',
   'Plus-Plutten',
   'Motsatsbron',
+  'Tidsstranden',
+  'Musikdjungeln',
+  'Mat- & Hälsobyn',
+  'Fordonsstaden',
+  'Mönsterpalatset',
+  'Stjärnhimlen',
 ];
 
 export default function Samlarbok() {

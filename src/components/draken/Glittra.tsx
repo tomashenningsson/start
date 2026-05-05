@@ -7,6 +7,7 @@ interface Props {
   size?: number;
   flying?: boolean;
   className?: string;
+  rainbow?: boolean;
 }
 
 const BODY_FILTERS: Record<string, string> = {
@@ -16,6 +17,10 @@ const BODY_FILTERS: Record<string, string> = {
   'farg-isbla': 'drop-shadow(0 4px 14px rgba(56,189,248,0.7)) hue-rotate(160deg) saturate(1.6) brightness(1.1)',
   'farg-skog': 'drop-shadow(0 4px 12px rgba(22,101,52,0.6)) saturate(1.8) brightness(0.85)',
   'farg-neon': 'drop-shadow(0 4px 18px rgba(168,85,247,0.85)) hue-rotate(220deg) saturate(2.4) brightness(1.15)',
+  'farg-soluppgang': 'drop-shadow(0 4px 14px rgba(251,146,60,0.7)) hue-rotate(-25deg) saturate(1.7) brightness(1.1)',
+  'farg-kamelont': 'drop-shadow(0 4px 14px rgba(34,197,94,0.7)) hue-rotate(80deg) saturate(1.8)',
+  // Final reward — animated rainbow handled via class.
+  'farg-magimastare': 'drop-shadow(0 6px 22px rgba(168,85,247,0.9))',
 };
 
 const HAT_EMOJI: Record<string, string> = {
@@ -25,6 +30,10 @@ const HAT_EMOJI: Record<string, string> = {
   keps: '🧢',
   magikerhatt: '🧙',
   partyhatt: '🥳',
+  manhatt: '🌙',
+  kockmossa: '👨‍🍳',
+  racerhjalm: '🏎️',
+  monsterkrona: '💠',
 };
 
 const WING_EMOJI: Record<string, string> = {
@@ -34,6 +43,9 @@ const WING_EMOJI: Record<string, string> = {
   isvingar: '❄️',
   regnvingar: '🌈',
   fagelvingar: '🐦',
+  djungelvingar: '🌴',
+  turbovingar: '🚀',
+  stjarnvingar: '🌟',
 };
 
 const ACCESSORY_EMOJI: Record<string, { emoji: string; pos: 'face' | 'chest' | 'tail' | 'wrist' }> = {
@@ -43,9 +55,13 @@ const ACCESSORY_EMOJI: Record<string, { emoji: string; pos: 'face' | 'chest' | '
   fluga: { emoji: '🎀', pos: 'chest' },
   klocka: { emoji: '⌚', pos: 'wrist' },
   halsduk: { emoji: '🧣', pos: 'chest' },
+  horlurar: { emoji: '🎧', pos: 'face' },
+  applehalsband: { emoji: '🍎', pos: 'chest' },
+  kometsvans: { emoji: '☄️', pos: 'tail' },
 };
 
-export function Glittra({ equipped = {}, size = 96, flying, className = '' }: Props) {
+export function Glittra({ equipped = {}, size = 96, flying, className = '', rainbow }: Props) {
+  const isMagimastare = rainbow || equipped.body === 'farg-magimastare';
   const bodyFilter = (equipped.body && BODY_FILTERS[equipped.body])
     || 'drop-shadow(0 4px 12px rgba(168,85,247,0.45))';
   const hat = equipped.hat ? HAT_EMOJI[equipped.hat] : null;
@@ -91,7 +107,29 @@ export function Glittra({ equipped = {}, size = 96, flying, className = '' }: Pr
         </>
       )}
 
-      <span style={{ fontSize: size * 0.95, filter: bodyFilter }}>🐉</span>
+      <span
+        className={isMagimastare ? 'animate-rainbow-cycle' : ''}
+        style={{ fontSize: size * 0.95, filter: bodyFilter }}
+      >
+        🐉
+      </span>
+
+      {isMagimastare && (
+        <>
+          <span
+            className="absolute -top-3 -right-2 select-none animate-medal-glow"
+            style={{ fontSize: size * 0.35 }}
+          >
+            🌈
+          </span>
+          <span
+            className="absolute -bottom-2 -left-2 select-none animate-medal-glow"
+            style={{ fontSize: size * 0.3, animationDelay: '0.6s' }}
+          >
+            ✨
+          </span>
+        </>
+      )}
 
       {hat && (
         <span
