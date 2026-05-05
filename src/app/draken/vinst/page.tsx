@@ -15,6 +15,7 @@ import {
   isAllLevelsComplete,
   REWARDS_CATALOG,
   REWARD_BY_ID,
+  TOTAL_LEVELS,
   type RewardCategory,
   type DrakenProgress,
   DEFAULT_DRAKEN,
@@ -34,31 +35,29 @@ export default function VinstPage() {
   const [progress, setProgress] = useState<DrakenProgress>(DEFAULT_DRAKEN);
   const [revealed, setRevealed] = useState(false);
   const [newlyUnlocked, setNewlyUnlocked] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const initial = loadDraken();
-    if (!isAllLevelsComplete(initial)) {
-      setProgress(initial);
-      return;
-    }
     const before = new Set(initial.unlockedRewards);
     const synced = syncRewards(initial);
     saveDraken(synced);
     setProgress(synced);
     setNewlyUnlocked(synced.unlockedRewards.filter(id => !before.has(id)));
+    setMounted(true);
 
-    const t1 = setTimeout(() => setRevealed(true), 600);
-    const t2 = setTimeout(() => {
-      speak('Du räddade de magiska öarna! Tack snälla!');
-      hapticNotification('success');
-    }, 1200);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    if (isAllLevelsComplete(synced)) {
+      const t1 = setTimeout(() => setRevealed(true), 600);
+      const t2 = setTimeout(() => {
+        speak('Du räddade alla magiska öar! Tack snälla!');
+        hapticNotification('success');
+      }, 1200);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
   }, [speak]);
-
-  const completed = isAllLevelsComplete(progress);
 
   const handleToggle = (id: string) => {
     const updated = toggleEquip(id);
@@ -70,14 +69,25 @@ export default function VinstPage() {
     }
   };
 
-  if (!completed) {
+  if (!mounted) {
+    return (
+      <GameBackground theme={GAME_THEMES.draken} className="min-h-screen">
+        <div />
+      </GameBackground>
+    );
+  }
+
+  const completed = isAllLevelsComplete(progress);
+  const noProgress = progress.completedLevels.length === 0;
+
+  if (noProgress) {
     return (
       <GameBackground theme={GAME_THEMES.draken} className="min-h-screen flex flex-col items-center justify-center p-6">
         <Glittra size={120} equipped={progress.equipped} />
         <div className="bg-white/90 rounded-3xl p-6 shadow-xl max-w-sm text-center mt-4">
-          <p className="text-lg font-black text-purple-800 mb-3">Klara alla 6 öar först! 🌟</p>
+          <p className="text-lg font-black text-purple-800 mb-3">Spela en ö först! 🌟</p>
           <p className="text-sm font-bold text-purple-700/70 mb-4">
-            Du har räddat {progress.completedLevels.length} av 6 öar.
+            Klara öar för att låsa upp roliga föremål till Glittra.
           </p>
           <Link
             href="/draken"
@@ -96,53 +106,72 @@ export default function VinstPage() {
         className="relative min-h-screen flex flex-col items-center px-4 pt-8"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)' }}
       >
-        {/* Floating sparkles */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: 12 }, (_, i) => (
-            <span
-              key={i}
-              className="absolute text-2xl opacity-80 animate-balloon-float"
-              style={{
-                top: `${(i * 8 + 5) % 90}%`,
-                left: `${(i * 17 + 7) % 95}%`,
-                animationDelay: `${i * 0.18}s`,
-              }}
-            >
-              {['✨', '⭐', '🌟', '💫'][i % 4]}
-            </span>
-          ))}
-        </div>
+        {/* Floating sparkles only on full victory */}
+        {completed && (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {Array.from({ length: 12 }, (_, i) => (
+              <span
+                key={i}
+                className="absolute text-2xl opacity-80 animate-balloon-float"
+                style={{
+                  top: `${(i * 8 + 5) % 90}%`,
+                  left: `${(i * 17 + 7) % 95}%`,
+                  animationDelay: `${i * 0.18}s`,
+                }}
+              >
+                {['✨', '⭐', '🌟', '💫'][i % 4]}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Title */}
-        <div className={`text-center ${revealed ? 'animate-rainbow-sweep' : ''}`}>
-          <h1
-            className="text-4xl md:text-5xl font-black drop-shadow-lg mb-2"
-            style={{
-              background: 'linear-gradient(90deg, #f472b6, #facc15, #22d3ee, #a855f7)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))',
-            }}
-          >
-            Du räddade de
-            <br />
-            magiska öarna!
-          </h1>
-          <p className="text-base font-black text-purple-900/80 mt-2">
-            ⭐ {progress.totalStars} stjärnor totalt ⭐
-          </p>
+        <div className={`text-center ${completed && revealed ? 'animate-rainbow-sweep' : ''}`}>
+          {completed ? (
+            <>
+              <h1
+                className="text-4xl md:text-5xl font-black drop-shadow-lg mb-2"
+                style={{
+                  background: 'linear-gradient(90deg, #f472b6, #facc15, #22d3ee, #a855f7)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))',
+                }}
+              >
+                Du räddade alla
+                <br />
+                magiska öar!
+              </h1>
+              <p className="text-base font-black text-purple-900/80 mt-2">
+                ⭐ {progress.totalStars} stjärnor totalt ⭐
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-3xl font-black text-purple-800 drop-shadow-sm mb-2">
+                👕 Glittras Garderob
+              </h1>
+              <p className="text-sm font-bold text-purple-800/80">
+                Du har räddat {progress.completedLevels.length} av {TOTAL_LEVELS} öar
+              </p>
+              <p className="text-xs font-bold text-purple-700/70 mt-1">
+                ⭐ {progress.totalStars} stjärnor · Klara fler öar för att låsa upp mer!
+              </p>
+            </>
+          )}
         </div>
 
-        {/* Flying dragon with everything equipped */}
-        <div className="my-6 relative animate-draken-victory">
-          <Glittra size={160} equipped={progress.equipped} flying />
+        {/* Glittra */}
+        <div className={`my-6 relative ${completed ? 'animate-draken-victory' : ''}`}>
+          <Glittra size={completed ? 160 : 130} equipped={progress.equipped} flying={completed} />
         </div>
 
-        {/* Medal */}
-        <div className="relative my-2">
-          <div className="text-7xl animate-medal-glow select-none">🏅</div>
-        </div>
-        <p className="text-base font-black text-purple-800/90 mb-6">Drakhjältens medalj!</p>
+        {completed && (
+          <>
+            <div className="text-7xl animate-medal-glow select-none">🏅</div>
+            <p className="text-base font-black text-purple-800/90 mb-4 mt-1">Drakhjältens medalj!</p>
+          </>
+        )}
 
         {/* New unlocks banner */}
         {newlyUnlocked.length > 0 && (
@@ -208,7 +237,7 @@ export default function VinstPage() {
                         >
                           <div className="text-3xl mb-0.5">{unlocked ? r.emoji : '🔒'}</div>
                           <div className="text-[11px] font-black leading-tight">
-                            {unlocked ? r.label : `${r.cost} ⭐`}
+                            {unlocked ? r.label : `Niva ${r.unlockedBy}`}
                           </div>
                           {equipped && (
                             <span className="absolute -top-1.5 -right-1.5 bg-amber-300 text-purple-900 text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-white">
@@ -225,7 +254,7 @@ export default function VinstPage() {
           </div>
 
           <p className="text-[11px] font-bold text-purple-500/70 text-center mt-4">
-            Samla fler stjärnor för att låsa upp fler föremål!
+            Varje ö ger 2 nya föremål — klara alla för full garderob!
           </p>
         </div>
 

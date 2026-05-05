@@ -316,7 +316,7 @@ export default function Niva6() {
           level={6}
           stars={stars}
           islandName="Drakslottet"
-          nextHref={null}
+          nextHref="/draken/niva7"
           onReplay={replay}
         />
       )}

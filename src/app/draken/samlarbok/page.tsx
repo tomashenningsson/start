@@ -24,6 +24,12 @@ const ISLAND_NAMES = [
   'Formgrottan',
   'Bokstavsberget',
   'Drakslottet',
+  'Färgön',
+  'Mönstergården',
+  'Stora-Lilla',
+  'Memoryskogen',
+  'Plus-Plutten',
+  'Motsatsbron',
 ];
 
 export default function Samlarbok() {
