@@ -36,9 +36,10 @@ interface Round {
   shown: string[];
   correct: string;
   choices: string[];
+  key: string;
 }
 
-function buildRound(): Round {
+function makeRound(): Round {
   const pat = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
   let items = ITEM_SETS[Math.floor(Math.random() * ITEM_SETS.length)];
   if (pat === 'ABC') {
@@ -66,7 +67,15 @@ function buildRound(): Round {
   const distractors = shuffle(allItems.filter(i => i !== correct)).slice(0, 2);
   const choices = shuffle([correct, ...distractors]);
 
-  return { shown, correct, choices };
+  return { shown, correct, choices, key: `${pat}:${shown.join('')}` };
+}
+
+function buildRound(prevKey?: string): Round {
+  let r = makeRound();
+  for (let i = 0; i < 8 && prevKey && r.key === prevKey; i++) {
+    r = makeRound();
+  }
+  return r;
 }
 
 export default function Niva8() {
@@ -97,7 +106,7 @@ export default function Niva8() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(data.key));
     setPicked(null);
     setRound(r => r + 1);
     setHasIntro(false);

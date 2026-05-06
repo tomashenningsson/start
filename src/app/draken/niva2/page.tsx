@@ -45,17 +45,21 @@ function shuffle<T>(a: T[]): T[] {
   return c;
 }
 
-function buildRound(): { target: typeof POOL[number]; items: ForestLetter[] } {
-  const shuffled = shuffle(POOL);
-  const target = shuffled[0];
-  const others = shuffled.slice(1, 6);
+function buildRound(prevLetter?: string): { target: typeof POOL[number]; items: ForestLetter[] } {
+  const candidates = prevLetter ? POOL.filter(p => p.letter !== prevLetter) : POOL;
+  const pool = candidates.length > 0 ? candidates : POOL;
+  const target = pool[Math.floor(Math.random() * pool.length)];
+  const others = shuffle(POOL.filter(p => p.letter !== target.letter)).slice(0, 5);
   const all = shuffle([target, ...others]);
+  // Center positions used with translate(-50%, 0) so cards don't get clipped
+  // by the rounded container border on the left/right edges.
+  const colCenters = [22, 50, 78];
   const items: ForestLetter[] = all.map((l, i) => ({
     id: i,
     letter: l.letter,
     emoji: FOREST_HOSTS[i % FOREST_HOSTS.length],
-    x: 8 + (i % 3) * 30 + (Math.random() * 6 - 3),
-    y: 8 + Math.floor(i / 3) * 32 + (Math.random() * 6 - 3),
+    x: colCenters[i % 3] + (Math.random() * 4 - 2),
+    y: 10 + Math.floor(i / 3) * 32 + (Math.random() * 4 - 2),
   }));
   return { target, items };
 }
@@ -88,7 +92,7 @@ export default function Niva2() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(target.letter));
     setCorrectId(null);
     setRound(r => r + 1);
     setHasIntro(false);
@@ -163,7 +167,7 @@ export default function Niva2() {
                 className={`absolute flex flex-col items-center active:scale-90 transition-transform ${
                   isWrong ? 'animate-shake' : ''
                 } ${isCorrect ? 'animate-draken-pop' : ''}`}
-                style={{ left: `${item.x}%`, top: `${item.y}%`, width: 84 }}
+                style={{ left: `${item.x}%`, top: `${item.y}%`, width: 84, transform: 'translateX(-50%)' }}
               >
                 <div className="text-4xl mb-1 drop-shadow select-none">{host}</div>
                 <div

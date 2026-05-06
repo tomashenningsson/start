@@ -31,9 +31,14 @@ interface Round {
   correctId: number;
 }
 
-function buildRound(): Round {
-  const emoji = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-  const goal: 'störst' | 'minst' = Math.random() < 0.5 ? 'störst' : 'minst';
+function buildRound(prevKey?: string): Round {
+  let emoji = ITEMS[0];
+  let goal: 'störst' | 'minst' = 'störst';
+  for (let i = 0; i < 12; i++) {
+    emoji = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+    goal = Math.random() < 0.5 ? 'störst' : 'minst';
+    if (!prevKey || `${emoji}_${goal}` !== prevKey) break;
+  }
   const sizes = shuffle(SIZES);
   const items = sizes.map((size, id) => ({ id, size }));
   const correctSize = goal === 'störst' ? Math.max(...sizes) : Math.min(...sizes);
@@ -69,7 +74,7 @@ export default function Niva9() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(`${data.emoji}_${data.goal}`));
     setPicked(null);
     setRound(r => r + 1);
     setHasIntro(false);

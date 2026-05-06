@@ -33,8 +33,10 @@ function shuffle<T>(a: T[]): T[] {
   return c;
 }
 
-function buildRound() {
-  const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+function buildRound(prevAnimalName?: string) {
+  const candidates = prevAnimalName ? ANIMALS.filter(a => a.name !== prevAnimalName) : ANIMALS;
+  const pool = candidates.length > 0 ? candidates : ANIMALS;
+  const animal = pool[Math.floor(Math.random() * pool.length)];
   const count = 1 + Math.floor(Math.random() * 6);
   const set = new Set<number>([count]);
   for (let off = 1; set.size < 3 && off < 8; off++) {
@@ -84,7 +86,7 @@ export default function Niva3() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(data.animal.name));
     setPicked(null);
     setWrongPick(null);
     setRound(r => r + 1);

@@ -39,10 +39,11 @@ function shuffle<T>(a: T[]): T[] {
   return c;
 }
 
-function buildRound() {
-  const order = shuffle(ITEMS);
-  const target = order[0];
-  const distractors = order.slice(1, 3);
+function buildRound(prevDef?: string) {
+  const candidates = prevDef ? ITEMS.filter(it => it.def !== prevDef) : ITEMS;
+  const pool = candidates.length > 0 ? candidates : ITEMS;
+  const target = pool[Math.floor(Math.random() * pool.length)];
+  const distractors = shuffle(ITEMS.filter(it => it.def !== target.def)).slice(0, 2);
   const choices = shuffle([target, ...distractors]);
   return { target, choices };
 }
@@ -75,7 +76,7 @@ export default function Niva7() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(data.target.def));
     setPicked(null);
     setRound(r => r + 1);
     setHasIntro(false);

@@ -32,6 +32,7 @@ interface Round {
   b: number; // only for add
   answer: number;
   choices: number[];
+  key: string;
 }
 
 function shuffle<T>(a: T[]): T[] {
@@ -53,16 +54,24 @@ function buildChoices(answer: number, max: number): number[] {
   return shuffle(Array.from(set));
 }
 
-function buildRound(round: number): Round {
+function makeRound(round: number): Round {
   // First half: counting only (1-10). Second half: simple addition (sum <= 10).
   if (round < 4) {
     const a = 1 + Math.floor(Math.random() * 10);
-    return { mode: 'count', a, b: 0, answer: a, choices: buildChoices(a, 10) };
+    return { mode: 'count', a, b: 0, answer: a, choices: buildChoices(a, 10), key: `count_${a}` };
   }
   const a = 1 + Math.floor(Math.random() * 5);
   const b = 1 + Math.floor(Math.random() * (10 - a));
   const sum = a + b;
-  return { mode: 'add', a, b, answer: sum, choices: buildChoices(sum, 10) };
+  return { mode: 'add', a, b, answer: sum, choices: buildChoices(sum, 10), key: `add_${a}_${b}` };
+}
+
+function buildRound(round: number, prevKey?: string): Round {
+  let r = makeRound(round);
+  for (let i = 0; i < 12 && prevKey && r.key === prevKey; i++) {
+    r = makeRound(round);
+  }
+  return r;
 }
 
 const ROUNDS = 7;
@@ -123,7 +132,7 @@ export default function Niva18() {
       return;
     }
     setRound(r => r + 1);
-    setData(buildRound(round + 1));
+    setData(buildRound(round + 1, data.key));
     setPicked(null);
     setTapped(new Set());
     setHasIntro(false);

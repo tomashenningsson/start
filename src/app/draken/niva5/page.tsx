@@ -44,8 +44,10 @@ function shuffle<T>(a: T[]): T[] {
   return c;
 }
 
-function buildRound() {
-  const target = WORDS[Math.floor(Math.random() * WORDS.length)];
+function buildRound(prevWord?: string) {
+  const candidates = prevWord ? WORDS.filter(w => w.word !== prevWord) : WORDS;
+  const pool = candidates.length > 0 ? candidates : WORDS;
+  const target = pool[Math.floor(Math.random() * pool.length)];
   const otherLetters = shuffle(
     Array.from(new Set(WORDS.filter(w => w.letter !== target.letter).map(w => w.letter)))
   ).slice(0, 3);
@@ -81,7 +83,7 @@ export default function Niva5() {
       setDone(true);
       return;
     }
-    setData(buildRound());
+    setData(buildRound(data.target.word));
     setPicked(null);
     setRound(r => r + 1);
     setHasIntro(false);
