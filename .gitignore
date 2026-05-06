@@ -23,7 +23,15 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
+
+# Azure / API secrets — never commit
+*.secret
+*.secrets
+secrets/
 
 # vercel
 .vercel

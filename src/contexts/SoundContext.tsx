@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
+import { cancelAudio } from '@/lib/audio/audioPlayer';
 
 interface SoundState {
   muted: boolean;
@@ -27,9 +28,7 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     setMuted(prev => {
       const next = !prev;
       localStorage.setItem('soundMuted', String(next));
-      if (next && typeof window !== 'undefined') {
-        window.speechSynthesis?.cancel();
-      }
+      if (next) cancelAudio();
       return next;
     });
   }, []);
