@@ -60,7 +60,7 @@ export default function DrakenMapPage() {
   const [showDaily, setShowDaily] = useState(false);
   const [dailyAwarded, setDailyAwarded] = useState<DailyReward | null>(null);
   const { muted, toggleMute } = useSound();
-  const { speak } = useSpeech();
+  const { speak, speakSequence } = useSpeech();
 
   useEffect(() => {
     const p = loadDraken();
@@ -75,13 +75,25 @@ export default function DrakenMapPage() {
     if (!mounted) return;
     const t = setTimeout(() => {
       const name = progress.dragonName || 'Glittra';
-      const greeting = progress.playerName
-        ? `Hej ${progress.playerName}! Jag heter ${name}. Hjälp mig rädda öarna!`
-        : `Hej! Jag heter ${name}. Hjälp mig rädda de magiska öarna!`;
-      speak(greeting);
+      // Speak in segments so each static fragment plays the warm Azure
+      // Sofie voice. Only the (rarely customized) names fall back to TTS,
+      // and only when the user has chosen something we haven't cached.
+      if (progress.playerName) {
+        speakSequence([
+          'Hej',
+          progress.playerName,
+          '! Jag heter',
+          name,
+          '. Hjälp mig rädda öarna!',
+        ]);
+      } else {
+        // Default state: matches an exact pre-rendered phrase when the
+        // dragon name is "Glittra".
+        speak(`Hej! Jag heter ${name}. Hjälp mig rädda de magiska öarna!`);
+      }
     }, 400);
     return () => clearTimeout(t);
-  }, [mounted, speak, progress.playerName, progress.dragonName]);
+  }, [mounted, speak, speakSequence, progress.playerName, progress.dragonName]);
 
   const allDone = isAllLevelsComplete(progress);
   const pendingDaily = mounted ? nextDailyReward(progress) : null;

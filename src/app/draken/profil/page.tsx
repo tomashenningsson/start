@@ -19,7 +19,7 @@ import {
 } from '@/lib/drakenStorage';
 
 export default function ProfilPage() {
-  const { speak } = useSpeech();
+  const { speak, speakSequence } = useSpeech();
   const [progress, setProgress] = useState<DrakenProgress>(DEFAULT_DRAKEN);
   const [player, setPlayer] = useState('');
   const [dragon, setDragon] = useState('Glittra');
@@ -39,11 +39,18 @@ export default function ProfilPage() {
     setProgress(updated);
     setSavedFlash(true);
     hapticNotification('success');
-    speak(
-      updated.playerName
-        ? `Sparat! Hej ${updated.playerName}, ${updated.dragonName} är glad att se dig!`
-        : `Sparat! ${updated.dragonName} är glad att träffa dig!`
-    );
+    if (updated.playerName) {
+      speakSequence([
+        'Sparat! Hej',
+        updated.playerName,
+        ',',
+        updated.dragonName,
+        'är glad att se dig!',
+      ]);
+    } else {
+      // Matches the pre-rendered phrase when dragon name is "Glittra".
+      speak(`Sparat! ${updated.dragonName} är glad att träffa dig!`);
+    }
     setTimeout(() => setSavedFlash(false), 1800);
   };
 

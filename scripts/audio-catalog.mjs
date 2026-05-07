@@ -490,8 +490,27 @@ function build() {
 
   // bokstaver/siffror standalone — already covered by alphabet/numbers
 
+  // Fragments used by speakSequence() so the dragon's greeting and the
+  // profile save confirmation play in the warm Azure Sofie voice even
+  // when the player has set a custom name. Only the name itself falls
+  // back to TTS — and even that is rare since "Glittra" is the default.
+  const fragments = [
+    'Hej',
+    '! Jag heter',
+    '. Hjälp mig rädda öarna!',
+    'Sparat! Hej',
+    'Sparat!',
+    ',',
+    'är glad att se dig!',
+    'är glad att träffa dig!',
+    'Daglig belöning! Du fick',
+    'stjärnor!',
+    'Glittra',
+  ];
+
   // Phrases — generic bucket for misc. utterances.
   const phrases = [
+    ...fragments,
     // Profile/welcome (player + dragon names are dynamic; we generate the
     // greeting templates as phrases-without-names so the runtime can fall
     // back to TTS for any with custom names — but the most common variants
