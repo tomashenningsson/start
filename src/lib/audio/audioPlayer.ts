@@ -29,6 +29,49 @@ let manifestPromise: Promise<AudioManifest | null> | null = null;
 const elementPool = new Map<string, HTMLAudioElement>();
 let currentlyPlaying: HTMLAudioElement | null = null;
 
+// --- Autoplay unlock --------------------------------------------------
+// Browsers block audio.play() before the first user gesture. When that
+// happens we stash the most recent playback request and replay it as
+// soon as the user taps anywhere — that's how the dragon's greeting
+// reaches the kid even when the page was opened cold.
+let audioUnlocked = false;
+let pendingPlayback: (() => void) | null = null;
+
+// Tiny silent WAV — base64 of a 16-bit PCM frame at ~44.1kHz. Playing
+// this inside the user's first gesture is the standard iOS Safari trick
+// to unlock the audio API for the rest of the session.
+const SILENT_PRIMER =
+  'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
+function unlockAudio(): void {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+
+  // Prime the audio system. iOS Safari (and Capacitor's WKWebView) only
+  // unlocks audio after a successful play() inside a gesture handler,
+  // and the unlock is per-element. Playing a silent buffer here grants
+  // the rest of the session the right to call .play() asynchronously.
+  try {
+    const primer = new Audio(SILENT_PRIMER);
+    primer.volume = 0;
+    void primer.play().catch(() => { /* ignore */ });
+  } catch { /* ignore */ }
+
+  const fn = pendingPlayback;
+  pendingPlayback = null;
+  if (fn) fn();
+}
+
+function installUnlockListeners(): void {
+  if (typeof window === 'undefined') return;
+  const events: (keyof WindowEventMap)[] = ['pointerdown', 'touchstart', 'mousedown', 'keydown'];
+  events.forEach(evt =>
+    window.addEventListener(evt, unlockAudio, { once: true, capture: true, passive: true })
+  );
+}
+if (typeof window !== 'undefined') installUnlockListeners();
+// ---------------------------------------------------------------------
+
 function normalize(text: string): string {
   // Trim and collapse internal whitespace to match generator behavior.
   return text.replace(/\s+/g, ' ').trim();
@@ -86,6 +129,10 @@ function speakViaTtsFallback(text: string): void {
 }
 
 export function cancelAudio(): void {
+  // Drop any queued autoplay-blocked playback — the caller's intent
+  // (e.g. muting, navigating away, or a fresh speak() request) supersedes
+  // whatever was waiting for the user's first tap.
+  pendingPlayback = null;
   if (currentlyPlaying) {
     currentlyPlaying.pause();
     currentlyPlaying.currentTime = 0;
@@ -96,50 +143,69 @@ export function cancelAudio(): void {
   }
 }
 
-async function playOne(text: string): Promise<void> {
+type PlayResult = 'played' | 'blocked';
+
+async function playOne(text: string): Promise<PlayResult> {
   const manifest = await loadManifest();
   const url = manifest ? resolveUrl(manifest, text) : null;
 
   if (!url) {
     speakViaTtsFallback(text);
-    // Wait for TTS to finish before returning so the next sequence step
-    // doesn't trample it.
-    await new Promise<void>(res => {
-      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return res();
-      // SpeechSynthesisUtterance fires "end" — but we don't have the utterance
-      // reference here. Poll a short timeout proportional to text length.
-      const ms = Math.max(450, text.length * 70);
-      setTimeout(res, ms);
-    });
-    return;
+    // SpeechSynthesisUtterance.onend isn't reachable from here, so wait
+    // a duration roughly proportional to the text length.
+    await new Promise<void>(res => setTimeout(res, Math.max(450, text.length * 70)));
+    return 'played';
   }
 
   const el = getElement(url);
   try { el.currentTime = 0; } catch { /* iOS pre-load may throw; ignore */ }
   currentlyPlaying = el;
 
-  await new Promise<void>((resolve) => {
-    const cleanup = () => {
+  return new Promise<PlayResult>((resolve) => {
+    let settled = false;
+    const finish = (result: PlayResult) => {
+      if (settled) return;
+      settled = true;
       el.removeEventListener('ended', onEnded);
       el.removeEventListener('error', onError);
+      resolve(result);
     };
-    const onEnded = () => { cleanup(); resolve(); };
-    const onError = () => { cleanup(); resolve(); };
+    const onEnded = () => finish('played');
+    const onError = () => finish('played');
     el.addEventListener('ended', onEnded);
     el.addEventListener('error', onError);
-    el.play().catch(() => {
-      cleanup();
-      // Autoplay blocked — gracefully fall back.
-      speakViaTtsFallback(text);
-      resolve();
-    });
+    el.play()
+      .then(() => { audioUnlocked = true; })
+      .catch(() => {
+        if (!audioUnlocked) {
+          finish('blocked');
+        } else {
+          // Audio API is unlocked but this specific play() failed
+          // (e.g. transient network or codec issue). Use TTS fallback.
+          speakViaTtsFallback(text);
+          finish('played');
+        }
+      });
   });
+}
+
+async function playFromIndex(parts: string[], startIdx: number): Promise<void> {
+  for (let i = startIdx; i < parts.length; i++) {
+    const result = await playOne(parts[i]);
+    if (result === 'blocked') {
+      // Capture the rest of the sequence and resume it the moment the
+      // user taps — `unlockAudio()` invokes pendingPlayback for us.
+      const remaining = parts.slice(i);
+      pendingPlayback = () => { void playFromIndex(remaining, 0); };
+      return;
+    }
+  }
 }
 
 export async function playAudio(text: string): Promise<void> {
   if (!text || typeof window === 'undefined') return;
   cancelAudio();
-  await playOne(text);
+  await playFromIndex([text], 0);
 }
 
 /**
@@ -155,9 +221,7 @@ export async function playAudioSequence(parts: string[]): Promise<void> {
   const cleaned = parts.map(p => (p ?? '').toString()).filter(p => p.trim().length > 0);
   if (cleaned.length === 0) return;
   cancelAudio();
-  for (const part of cleaned) {
-    await playOne(part);
-  }
+  await playFromIndex(cleaned, 0);
 }
 
 // Pre-warm the manifest so the first speak() call is fast.
