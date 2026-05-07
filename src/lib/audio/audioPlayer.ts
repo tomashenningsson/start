@@ -96,28 +96,67 @@ export function cancelAudio(): void {
   }
 }
 
-export async function playAudio(text: string): Promise<void> {
-  if (!text || typeof window === 'undefined') return;
-
-  cancelAudio();
-
+async function playOne(text: string): Promise<void> {
   const manifest = await loadManifest();
   const url = manifest ? resolveUrl(manifest, text) : null;
 
   if (!url) {
     speakViaTtsFallback(text);
+    // Wait for TTS to finish before returning so the next sequence step
+    // doesn't trample it.
+    await new Promise<void>(res => {
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return res();
+      // SpeechSynthesisUtterance fires "end" — but we don't have the utterance
+      // reference here. Poll a short timeout proportional to text length.
+      const ms = Math.max(450, text.length * 70);
+      setTimeout(res, ms);
+    });
     return;
   }
 
   const el = getElement(url);
-  // Always restart from the beginning — kids tap repeatedly.
   try { el.currentTime = 0; } catch { /* iOS pre-load may throw; ignore */ }
   currentlyPlaying = el;
-  try {
-    await el.play();
-  } catch {
-    // Autoplay might be blocked before a user gesture; fall back gracefully.
-    speakViaTtsFallback(text);
+
+  await new Promise<void>((resolve) => {
+    const cleanup = () => {
+      el.removeEventListener('ended', onEnded);
+      el.removeEventListener('error', onError);
+    };
+    const onEnded = () => { cleanup(); resolve(); };
+    const onError = () => { cleanup(); resolve(); };
+    el.addEventListener('ended', onEnded);
+    el.addEventListener('error', onError);
+    el.play().catch(() => {
+      cleanup();
+      // Autoplay blocked — gracefully fall back.
+      speakViaTtsFallback(text);
+      resolve();
+    });
+  });
+}
+
+export async function playAudio(text: string): Promise<void> {
+  if (!text || typeof window === 'undefined') return;
+  cancelAudio();
+  await playOne(text);
+}
+
+/**
+ * Speak a sequence of text fragments back-to-back. Each fragment is
+ * looked up in the manifest independently — pre-rendered Azure audio
+ * for static parts ("Hej ", "! Jag heter ", ". Hjälp mig rädda öarna!"),
+ * TTS fallback only for the dynamic pieces (custom user/dragon names)
+ * that can't be pre-rendered. This keeps the warm Sofie voice for the
+ * vast majority of every utterance.
+ */
+export async function playAudioSequence(parts: string[]): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const cleaned = parts.map(p => (p ?? '').toString()).filter(p => p.trim().length > 0);
+  if (cleaned.length === 0) return;
+  cancelAudio();
+  for (const part of cleaned) {
+    await playOne(part);
   }
 }
 

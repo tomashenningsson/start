@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-05-06T10:57:46.551Z",
+  "generatedAt": "2026-05-06T13:47:00.424Z",
   "voice": "sv-SE-SofieNeural",
   "style": "cheerful",
   "rate": "-4%",
@@ -1288,6 +1288,17 @@
     "Vad är 9 gånger 8?": "instructions/efe0ed8ff1651ec6.mp3",
     "Vad är 9 gånger 9?": "instructions/fddb815c1efb1851.mp3",
     "Räkna 2 i taget. Vilken siffra fattas?": "instructions/0eb36794bc8a46ce.mp3",
-    "Räkna 3 i taget. Vilken siffra fattas?": "instructions/1ea35242e731710a.mp3"
+    "Räkna 3 i taget. Vilken siffra fattas?": "instructions/1ea35242e731710a.mp3",
+    "Hej": "phrases/7bcf82f95cf9662a.mp3",
+    "! Jag heter": "phrases/8c6a4c4f5560e2fc.mp3",
+    ". Hjälp mig rädda öarna!": "phrases/802743ca36ca617b.mp3",
+    "Sparat! Hej": "phrases/f5e5a52b8d3897b4.mp3",
+    "Sparat!": "phrases/a9f0e98ca6598bee.mp3",
+    ",": "phrases/5c10b5b2cd673a06.mp3",
+    "är glad att se dig!": "phrases/5fd406f68682591a.mp3",
+    "är glad att träffa dig!": "phrases/1c811d5e68dafaf0.mp3",
+    "Daglig belöning! Du fick": "phrases/5709c856cd067716.mp3",
+    "stjärnor!": "phrases/b29ae4c79c332ecd.mp3",
+    "Glittra": "phrases/c5ac05238d8b2d7d.mp3"
   }
 }
